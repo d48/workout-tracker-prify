@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { PlusIcon, TrashIcon, ExclamationCircleIcon, DocumentCheckIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, TrashIcon, ExclamationCircleIcon, DocumentCheckIcon, PencilIcon } from '@heroicons/react/24/outline';
 import { supabase } from '../lib/supabase';
 import ExerciseSelector from './ExerciseSelector';
 import ExerciseStats from './ExerciseStats';
@@ -16,7 +16,6 @@ type WorkoutResponse = Database['public']['Tables']['workouts']['Row'] & {
   })[];
 };
 
-// Debounce helper function
 function debounce<T extends (...args: any[]) => any>(
   func: T,
   wait: number
@@ -42,9 +41,9 @@ export default function WorkoutDetail() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [retryCount, setRetryCount] = useState(0);
+  const titleInputRef = useRef<HTMLInputElement>(null);
   const MAX_RETRIES = 3;
 
-  // Create debounced save functions
   const debouncedSaveNotes = useCallback(
     debounce(async (exerciseId: string, notes: string) => {
       try {
@@ -394,13 +393,22 @@ export default function WorkoutDetail() {
       )}
 
       <div className="mb-6 space-y-4">
-        <input
-          type="text"
-          value={workout.name}
-          onChange={(e) => setWorkout(prev => ({ ...prev, name: e.target.value }))}
-          className="text-2xl font-bold w-full bg-transparent"
-          placeholder="Workout Name"
-        />
+        <div className="relative group">
+          <input
+            ref={titleInputRef}
+            type="text"
+            value={workout.name}
+            onChange={(e) => setWorkout(prev => ({ ...prev, name: e.target.value }))}
+            className="text-2xl font-bold w-full bg-transparent pr-8 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-lg transition-colors p-2"
+            placeholder="Workout Name"
+          />
+          <button
+            onClick={() => titleInputRef.current?.focus()}
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            <PencilIcon className="h-5 w-5" />
+          </button>
+        </div>
         <input
           type="datetime-local"
           value={workout.date}
@@ -578,7 +586,6 @@ export default function WorkoutDetail() {
         </div>
       )}
 
-      {/* Fixed action buttons */}
       <div className="fixed bottom-16 left-0 right-0 flex justify-between items-center px-4 pb-4">
         <button
           onClick={saveWorkout}
