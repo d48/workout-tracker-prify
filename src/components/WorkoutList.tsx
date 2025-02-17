@@ -4,6 +4,8 @@ import { format, startOfToday, startOfWeek, startOfMonth, endOfToday, endOfWeek,
 import { PlusIcon, TrashIcon, ShareIcon, ClipboardDocumentIcon, DocumentDuplicateIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import { supabase } from '../lib/supabase';
 import html2canvas from 'html2canvas';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { findIconByName } from '../lib/exercise-icons';
 import { Database } from '../types/supabase';
 
 type Workout = Database['public']['Tables']['workouts']['Row'] & {
@@ -458,12 +460,17 @@ export default function WorkoutList() {
                     <div className="space-y-2">
                       {workout.exercises.map((exercise) => {
                         const stats = calculateExerciseStats(exercise);
+                        const iconInfo = findIconByName(exercise.icon_name || 'dumbbell');
                         
                         return (
                           <div
                             key={exercise.id}
                             className="flex items-center gap-2 text-sm bg-gray-50 p-2 rounded"
                           >
+                            <FontAwesomeIcon 
+                              icon={iconInfo.iconDef} 
+                              className="h-4 w-4 text-gray-600" 
+                            />
                             <span className="font-medium">{exercise.name}</span>
                             <div className="flex gap-3 ml-auto text-xs text-gray-600">
                               {stats.totalReps && (
