@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { PlusIcon, TrashIcon, ExclamationCircleIcon } from '@heroicons/react/24/outline';
 import { supabase } from '../lib/supabase';
@@ -16,6 +16,18 @@ type WorkoutResponse = Database['public']['Tables']['workouts']['Row'] & {
   })[];
 };
 
+// Debounce helper function
+function debounce<T extends (...args: any[]) => any>(
+  func: T,
+  wait: number
+): (...args: Parameters<T>) => void {
+  let timeout: NodeJS.Timeout;
+  return (...args: Parameters<T>) => {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func(...args), wait);
+  };
+}
+
 export default function WorkoutDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -31,6 +43,26 @@ export default function WorkoutDetail() {
   const [error, setError] = useState('');
   const [retryCount, setRetryCount] = useState(0);
   const MAX_RETRIES = 3;
+
+  // Create a debounced version of the save function
+  const debouncedSaveNotes = useCallback(
+    debounce(async (exerciseId: string, notes: string) => {
+      try {
+        const { error } = await supabase
+          .from('exercises')
+          .update({ notes })
+          .eq('id', exerciseId);
+
+        if (error) throw error;
+      } catch (error) {
+        console.error('Error saving exercise notes:', error);
+        if (error instanceof Error) {
+          setError(error.message);
+        }
+      }
+    }, 500),
+    []
+  );
 
   useEffect(() => {
     if (id === 'new') {
@@ -212,32 +244,17 @@ export default function WorkoutDetail() {
     }
   }
 
-  async function updateExerciseNotes(exerciseId: string, notes: string) {
-    if (loading) return;
-    setLoading(true);
+  function handleExerciseNotesChange(exerciseId: string, notes: string) {
+    // Update local state immediately
+    setWorkout(prev => ({
+      ...prev,
+      exercises: prev.exercises.map(ex =>
+        ex.id === exerciseId ? { ...ex, notes } : ex
+      )
+    }));
 
-    try {
-      const { error } = await supabase
-        .from('exercises')
-        .update({ notes })
-        .eq('id', exerciseId);
-
-      if (error) throw error;
-
-      setWorkout(prev => ({
-        ...prev,
-        exercises: prev.exercises.map(ex =>
-          ex.id === exerciseId ? { ...ex, notes } : ex
-        )
-      }));
-    } catch (error) {
-      console.error('Error updating exercise notes:', error);
-      if (error instanceof Error) {
-        setError(error.message);
-      }
-    } finally {
-      setLoading(false);
-    }
+    // Debounce the save to database
+    debouncedSaveNotes(exerciseId, notes);
   }
 
   async function addSet(exerciseId: string) {
@@ -441,7 +458,7 @@ export default function WorkoutDetail() {
 
               <textarea
                 value={exercise.notes || ''}
-                onChange={(e) => updateExerciseNotes(exercise.id, e.target.value)}
+                onChange={(e) => handleExerciseNotesChange(exercise.id, e.target.value)}
                 placeholder="Add notes for this exercise..."
                 className="w-full p-2 border rounded-lg text-sm mb-4 resize-none h-20"
               />
