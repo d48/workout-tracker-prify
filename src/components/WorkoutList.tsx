@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format, startOfToday, startOfWeek, startOfMonth, endOfToday, endOfWeek, endOfMonth } from 'date-fns';
-import { PlusIcon, TrashIcon, ShareIcon, ClipboardDocumentIcon, DocumentDuplicateIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, TrashIcon, ShareIcon, ClipboardDocumentIcon, DocumentDuplicateIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import { supabase } from '../lib/supabase';
 import html2canvas from 'html2canvas';
 import { Database } from '../types/supabase';
@@ -21,16 +21,20 @@ type Workout = Database['public']['Tables']['workouts']['Row'] & {
   }>;
 };
 
+const WORKOUTS_PER_PAGE = 10;
+
 export default function WorkoutList() {
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
+  const [page, setPage] = useState(1);
+  const [totalWorkouts, setTotalWorkouts] = useState(0);
   const navigate = useNavigate();
   const workoutRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   useEffect(() => {
     fetchWorkouts();
-  }, [filter]);
+  }, [filter, page]);
 
   async function fetchWorkouts() {
     try {
@@ -50,7 +54,7 @@ export default function WorkoutList() {
               completed
             )
           )
-        `);
+        `, { count: 'exact' });
 
       // Apply date filters
       if (filter !== 'all') {
@@ -63,7 +67,7 @@ export default function WorkoutList() {
             endDate = endOfToday();
             break;
           case 'week':
-            startDate = startOfWeek(new Date(), { weekStartsOn: 1 }); // Start week on Monday
+            startDate = startOfWeek(new Date(), { weekStartsOn: 1 });
             endDate = endOfWeek(new Date(), { weekStartsOn: 1 });
             break;
           case 'month':
@@ -80,7 +84,13 @@ export default function WorkoutList() {
           .lte('date', endDate.toISOString());
       }
 
-      const { data, error } = await query.order('date', { ascending: false });
+      // Add pagination
+      const from = (page - 1) * WORKOUTS_PER_PAGE;
+      const to = from + WORKOUTS_PER_PAGE - 1;
+
+      const { data, error, count } = await query
+        .order('date', { ascending: false })
+        .range(from, to);
 
       if (error) throw error;
 
@@ -91,6 +101,9 @@ export default function WorkoutList() {
       })) || [];
 
       setWorkouts(sortedWorkouts);
+      if (count !== null) {
+        setTotalWorkouts(count);
+      }
     } catch (error) {
       console.error('Error fetching workouts:', error);
     } finally {
@@ -281,6 +294,55 @@ export default function WorkoutList() {
     </div>
   );
 
+  const totalPages = Math.ceil(totalWorkouts / WORKOUTS_PER_PAGE);
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setPage(newPage);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const Pagination = () => {
+    if (totalPages <= 1) return null;
+
+    return (
+      <div className="flex justify-center items-center gap-4 mt-6 pb-20">
+        <button
+          onClick={() => handlePageChange(page - 1)}
+          disabled={page === 1}
+          className="p-2 rounded-full disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+        >
+          <ChevronLeftIcon className="h-5 w-5" />
+        </button>
+        
+        <div className="flex items-center gap-2">
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+            <button
+              key={pageNum}
+              onClick={() => handlePageChange(pageNum)}
+              className={`w-8 h-8 rounded-full ${
+                pageNum === page
+                  ? 'bg-blue-600 text-white'
+                  : 'hover:bg-gray-100'
+              }`}
+            >
+              {pageNum}
+            </button>
+          ))}
+        </div>
+
+        <button
+          onClick={() => handlePageChange(page + 1)}
+          disabled={page === totalPages}
+          className="p-2 rounded-full disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+        >
+          <ChevronRightIcon className="h-5 w-5" />
+        </button>
+      </div>
+    );
+  };
+
   if (loading) {
     return (
       <div className="p-4">
@@ -320,7 +382,10 @@ export default function WorkoutList() {
             {['all', 'today', 'week', 'month'].map((period) => (
               <button
                 key={period}
-                onClick={() => setFilter(period)}
+                onClick={() => {
+                  setFilter(period);
+                  setPage(1); // Reset to first page when changing filter
+                }}
                 className={`px-4 py-2 rounded-full whitespace-nowrap ${
                   filter === period
                     ? 'bg-blue-600 text-white'
@@ -338,86 +403,89 @@ export default function WorkoutList() {
         {workouts.length === 0 ? (
           <WelcomeMessage />
         ) : (
-          <div className="space-y-4">
-            {workouts.map((workout) => (
-              <div
-                key={workout.id}
-                ref={el => workoutRefs.current[workout.id] = el}
-                onClick={() => navigate(`/workout/${workout.id}`)}
-                className="bg-white rounded-lg shadow p-4 cursor-pointer hover:bg-gray-50 transition-colors"
-              >
-                <div className="flex justify-between items-start mb-3">
-                  <div className="flex-1">
-                    <h2 className="text-lg font-semibold hover:text-blue-600 transition-colors">
-                      {workout.name}
-                    </h2>
-                    <p className="text-sm text-gray-500">
-                      {format(new Date(workout.date), 'MMM d, yyyy')}
-                    </p>
-                    {workout.notes && (
-                      <p className="text-sm text-gray-600 mt-2 whitespace-pre-wrap">
-                        {workout.notes}
+          <>
+            <div className="space-y-4">
+              {workouts.map((workout) => (
+                <div
+                  key={workout.id}
+                  ref={el => workoutRefs.current[workout.id] = el}
+                  onClick={() => navigate(`/workout/${workout.id}`)}
+                  className="bg-white rounded-lg shadow p-4 cursor-pointer hover:bg-gray-50 transition-colors"
+                >
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="flex-1">
+                      <h2 className="text-lg font-semibold hover:text-blue-600 transition-colors">
+                        {workout.name}
+                      </h2>
+                      <p className="text-sm text-gray-500">
+                        {format(new Date(workout.date), 'MMM d, yyyy')}
                       </p>
-                    )}
+                      {workout.notes && (
+                        <p className="text-sm text-gray-600 mt-2 whitespace-pre-wrap">
+                          {workout.notes}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex gap-2 action-buttons ml-4">
+                      <button
+                        onClick={(e) => duplicateWorkout(workout, e)}
+                        className="text-blue-600 hover:text-blue-800"
+                        title="Duplicate workout"
+                      >
+                        <DocumentDuplicateIcon className="h-5 w-5" />
+                      </button>
+                      <button
+                        onClick={(e) => shareWorkout(workout, e)}
+                        className="text-blue-600 hover:text-blue-800"
+                        title="Share workout"
+                      >
+                        <ShareIcon className="h-5 w-5" />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteWorkout(workout.id);
+                        }}
+                        className="text-red-600 hover:text-red-800"
+                        title="Delete workout"
+                      >
+                        <TrashIcon className="h-5 w-5" />
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex gap-2 action-buttons ml-4">
-                    <button
-                      onClick={(e) => duplicateWorkout(workout, e)}
-                      className="text-blue-600 hover:text-blue-800"
-                      title="Duplicate workout"
-                    >
-                      <DocumentDuplicateIcon className="h-5 w-5" />
-                    </button>
-                    <button
-                      onClick={(e) => shareWorkout(workout, e)}
-                      className="text-blue-600 hover:text-blue-800"
-                      title="Share workout"
-                    >
-                      <ShareIcon className="h-5 w-5" />
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        deleteWorkout(workout.id);
-                      }}
-                      className="text-red-600 hover:text-red-800"
-                      title="Delete workout"
-                    >
-                      <TrashIcon className="h-5 w-5" />
-                    </button>
-                  </div>
-                </div>
 
-                {workout.exercises?.length > 0 && (
-                  <div className="space-y-2">
-                    {workout.exercises.map((exercise) => {
-                      const stats = calculateExerciseStats(exercise);
-                      
-                      return (
-                        <div
-                          key={exercise.id}
-                          className="flex items-center gap-2 text-sm bg-gray-50 p-2 rounded"
-                        >
-                          <span className="font-medium">{exercise.name}</span>
-                          <div className="flex gap-3 ml-auto text-xs text-gray-600">
-                            {stats.totalReps && (
-                              <span>{stats.totalReps} reps</span>
-                            )}
-                            {stats.maxWeight && (
-                              <span>{stats.maxWeight} lbs</span>
-                            )}
-                            {stats.totalDistance && (
-                              <span>{stats.totalDistance.toFixed(1)} mi</span>
-                            )}
+                  {workout.exercises?.length > 0 && (
+                    <div className="space-y-2">
+                      {workout.exercises.map((exercise) => {
+                        const stats = calculateExerciseStats(exercise);
+                        
+                        return (
+                          <div
+                            key={exercise.id}
+                            className="flex items-center gap-2 text-sm bg-gray-50 p-2 rounded"
+                          >
+                            <span className="font-medium">{exercise.name}</span>
+                            <div className="flex gap-3 ml-auto text-xs text-gray-600">
+                              {stats.totalReps && (
+                                <span>{stats.totalReps} reps</span>
+                              )}
+                              {stats.maxWeight && (
+                                <span>{stats.maxWeight} lbs</span>
+                              )}
+                              {stats.totalDistance && (
+                                <span>{stats.totalDistance.toFixed(1)} mi</span>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+            <Pagination />
+          </>
         )}
       </div>
     </div>
