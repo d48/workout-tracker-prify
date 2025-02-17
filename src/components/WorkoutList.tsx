@@ -256,132 +256,142 @@ export default function WorkoutList() {
   if (loading) {
     return (
       <div className="p-4">
-        <div className="flex justify-between items-center mb-6">
-          <div className="flex items-center gap-2">
-            <ClipboardDocumentIcon className="h-8 w-8 text-blue-600" />
-            <h1 className="text-2xl font-bold">My Workouts</h1>
+        <div className="fixed top-0 left-0 right-0 bg-gray-100 z-10">
+          <div className="max-w-lg mx-auto px-4 py-4">
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <ClipboardDocumentIcon className="h-8 w-8 text-blue-600" />
+                <h1 className="text-2xl font-bold">My Workouts</h1>
+              </div>
+            </div>
           </div>
         </div>
-        <div className="text-center text-gray-500 mt-8">Loading workouts...</div>
+        <div className="pt-24 text-center text-gray-500">Loading workouts...</div>
       </div>
     );
   }
 
   return (
     <div className="p-4">
-      <div className="flex justify-between items-center mb-6">
-        <div className="flex items-center gap-2">
-          <ClipboardDocumentIcon className="h-8 w-8 text-blue-600" />
-          <h1 className="text-2xl font-bold">My Workouts</h1>
-        </div>
-        <button
-          onClick={() => navigate('/workout/new')}
-          className="bg-blue-600 text-white p-2 rounded-full hover:bg-blue-700"
-        >
-          <PlusIcon className="h-6 w-6" />
-        </button>
-      </div>
-
-      <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
-        {['all', 'today', 'week', 'month'].map((period) => (
-          <button
-            key={period}
-            onClick={() => setFilter(period)}
-            className={`px-4 py-2 rounded-full whitespace-nowrap ${
-              filter === period
-                ? 'bg-blue-600 text-white'
-                : 'bg-white text-gray-600'
-            }`}
-          >
-            {period === 'all' ? 'All Time' : period.charAt(0).toUpperCase() + period.slice(1)}
-          </button>
-        ))}
-      </div>
-
-      {workouts.length === 0 ? (
-        <WelcomeMessage />
-      ) : (
-        <div className="space-y-4">
-          {workouts.map((workout) => (
-            <div
-              key={workout.id}
-              ref={el => workoutRefs.current[workout.id] = el}
-              onClick={() => navigate(`/workout/${workout.id}`)}
-              className="bg-white rounded-lg shadow p-4 cursor-pointer hover:bg-gray-50 transition-colors"
-            >
-              <div className="flex justify-between items-start mb-3">
-                <div className="flex-1">
-                  <h2 className="text-lg font-semibold hover:text-blue-600 transition-colors">
-                    {workout.name}
-                  </h2>
-                  <p className="text-sm text-gray-500">
-                    {format(new Date(workout.date), 'MMM d, yyyy')}
-                  </p>
-                  {workout.notes && (
-                    <p className="text-sm text-gray-600 mt-2 whitespace-pre-wrap">
-                      {workout.notes}
-                    </p>
-                  )}
-                </div>
-                <div className="flex gap-2 action-buttons ml-4">
-                  <button
-                    onClick={(e) => duplicateWorkout(workout, e)}
-                    className="text-blue-600 hover:text-blue-800"
-                    title="Duplicate workout"
-                  >
-                    <DocumentDuplicateIcon className="h-5 w-5" />
-                  </button>
-                  <button
-                    onClick={(e) => shareWorkout(workout, e)}
-                    className="text-blue-600 hover:text-blue-800"
-                    title="Share workout"
-                  >
-                    <ShareIcon className="h-5 w-5" />
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      deleteWorkout(workout.id);
-                    }}
-                    className="text-red-600 hover:text-red-800"
-                    title="Delete workout"
-                  >
-                    <TrashIcon className="h-5 w-5" />
-                  </button>
-                </div>
-              </div>
-
-              {workout.exercises?.length > 0 && (
-                <div className="space-y-2">
-                  {workout.exercises.map((exercise) => {
-                    const stats = calculateExerciseStats(exercise);
-                    
-                    return (
-                      <div
-                        key={exercise.id}
-                        className="flex items-center gap-2 text-sm bg-gray-50 p-2 rounded"
-                      >
-                        <span className="font-medium">{exercise.name}</span>
-                        <div className="flex gap-3 ml-auto text-xs text-gray-600">
-                          {stats.totalReps && (
-                            <span>{stats.totalReps} reps</span>
-                          )}
-                          {stats.maxWeight && (
-                            <span>{stats.maxWeight} lbs</span>
-                          )}
-                          {stats.totalDistance && (
-                            <span>{stats.totalDistance.toFixed(1)} mi</span>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+      <div className="fixed top-0 left-0 right-0 bg-gray-100 z-10">
+        <div className="max-w-lg mx-auto px-4 py-4">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              <ClipboardDocumentIcon className="h-8 w-8 text-blue-600" />
+              <h1 className="text-2xl font-bold">My Workouts</h1>
             </div>
-          ))}
+            <button
+              onClick={() => navigate('/workout/new')}
+              className="bg-blue-600 text-white p-2 rounded-full hover:bg-blue-700"
+            >
+              <PlusIcon className="h-6 w-6" />
+            </button>
+          </div>
+
+          <div className="flex gap-2 mt-4 overflow-x-auto">
+            {['all', 'today', 'week', 'month'].map((period) => (
+              <button
+                key={period}
+                onClick={() => setFilter(period)}
+                className={`px-4 py-2 rounded-full whitespace-nowrap ${
+                  filter === period
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-white text-gray-600'
+                }`}
+              >
+                {period === 'all' ? 'All Time' : period.charAt(0).toUpperCase() + period.slice(1)}
+              </button>
+            ))}
+          </div>
         </div>
-      )}
+      </div>
+
+      <div className="pt-32">
+        {workouts.length === 0 ? (
+          <WelcomeMessage />
+        ) : (
+          <div className="space-y-4">
+            {workouts.map((workout) => (
+              <div
+                key={workout.id}
+                ref={el => workoutRefs.current[workout.id] = el}
+                onClick={() => navigate(`/workout/${workout.id}`)}
+                className="bg-white rounded-lg shadow p-4 cursor-pointer hover:bg-gray-50 transition-colors"
+              >
+                <div className="flex justify-between items-start mb-3">
+                  <div className="flex-1">
+                    <h2 className="text-lg font-semibold hover:text-blue-600 transition-colors">
+                      {workout.name}
+                    </h2>
+                    <p className="text-sm text-gray-500">
+                      {format(new Date(workout.date), 'MMM d, yyyy')}
+                    </p>
+                    {workout.notes && (
+                      <p className="text-sm text-gray-600 mt-2 whitespace-pre-wrap">
+                        {workout.notes}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex gap-2 action-buttons ml-4">
+                    <button
+                      onClick={(e) => duplicateWorkout(workout, e)}
+                      className="text-blue-600 hover:text-blue-800"
+                      title="Duplicate workout"
+                    >
+                      <DocumentDuplicateIcon className="h-5 w-5" />
+                    </button>
+                    <button
+                      onClick={(e) => shareWorkout(workout, e)}
+                      className="text-blue-600 hover:text-blue-800"
+                      title="Share workout"
+                    >
+                      <ShareIcon className="h-5 w-5" />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteWorkout(workout.id);
+                      }}
+                      className="text-red-600 hover:text-red-800"
+                      title="Delete workout"
+                    >
+                      <TrashIcon className="h-5 w-5" />
+                    </button>
+                  </div>
+                </div>
+
+                {workout.exercises?.length > 0 && (
+                  <div className="space-y-2">
+                    {workout.exercises.map((exercise) => {
+                      const stats = calculateExerciseStats(exercise);
+                      
+                      return (
+                        <div
+                          key={exercise.id}
+                          className="flex items-center gap-2 text-sm bg-gray-50 p-2 rounded"
+                        >
+                          <span className="font-medium">{exercise.name}</span>
+                          <div className="flex gap-3 ml-auto text-xs text-gray-600">
+                            {stats.totalReps && (
+                              <span>{stats.totalReps} reps</span>
+                            )}
+                            {stats.maxWeight && (
+                              <span>{stats.maxWeight} lbs</span>
+                            )}
+                            {stats.totalDistance && (
+                              <span>{stats.totalDistance.toFixed(1)} mi</span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
