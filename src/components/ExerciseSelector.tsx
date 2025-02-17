@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { findIconByName, exerciseIcons, ExerciseIcon } from '../lib/exercise-icons';
-import { PlusIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, MagnifyingGlassIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { Database } from '../types/supabase';
 
 type Category = Database['public']['Tables']['exercise_categories']['Row'];
@@ -21,6 +21,8 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
   const [showIconSelector, setShowIconSelector] = useState(false);
   const [selectedIcon, setSelectedIcon] = useState<ExerciseIcon>(exerciseIcons[0]);
   const [iconSearch, setIconSearch] = useState('');
+  const [showNewCategoryForm, setShowNewCategoryForm] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
   const [newExercise, setNewExercise] = useState<Omit<ExerciseTemplate, 'id' | 'created_at' | 'user_id' | 'is_custom'>>({
     name: '',
     category_id: '',
@@ -71,6 +73,43 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
 
     if (data) {
       setExercises(data);
+    }
+  }
+
+  async function handleAddCategory(e: React.FormEvent) {
+    e.preventDefault();
+    
+    if (!newCategoryName.trim()) {
+      alert('Please enter a category name');
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('exercise_categories')
+        .insert({ name: newCategoryName.trim() })
+        .select()
+        .single();
+
+      if (error) {
+        if (error.code === '23505') { // Unique violation
+          alert('A category with this name already exists');
+        } else {
+          throw error;
+        }
+        return;
+      }
+
+      if (data) {
+        setCategories([...categories, data]);
+        setNewCategoryName('');
+        setShowNewCategoryForm(false);
+        setNewExercise(prev => ({ ...prev, category_id: data.id }));
+        setSelectedCategory(data.id);
+      }
+    } catch (error) {
+      console.error('Error creating category:', error);
+      alert('Error creating category. Please try again.');
     }
   }
 
@@ -202,29 +241,75 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
             />
           </div>
 
-          <div className="flex gap-2 overflow-x-auto pb-2">
-            <button
-              onClick={() => setSelectedCategory(null)}
-              className={`px-3 py-1 rounded-full whitespace-nowrap ${
-                !selectedCategory ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'
-              }`}
-            >
-              All
-            </button>
-            {categories.map(category => (
+          <div className="mb-2">
+            <div className="flex justify-between items-center mb-2">
+              <label className="text-sm font-medium text-gray-700">Categories</label>
               <button
-                key={category.id}
-                onClick={() => setSelectedCategory(category.id)}
+                onClick={() => setShowNewCategoryForm(true)}
+                className="text-blue-600 hover:text-blue-800 text-sm flex items-center gap-1"
+              >
+                <PlusIcon className="h-4 w-4" />
+                Add Category
+              </button>
+            </div>
+            <div className="flex gap-2 overflow-x-auto pb-2">
+              <button
+                onClick={() => setSelectedCategory(null)}
                 className={`px-3 py-1 rounded-full whitespace-nowrap ${
-                  category.id === selectedCategory
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-600'
+                  !selectedCategory ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'
                 }`}
               >
-                {category.name}
+                All
               </button>
-            ))}
+              {categories.map(category => (
+                <button
+                  key={category.id}
+                  onClick={() => setSelectedCategory(category.id)}
+                  className={`px-3 py-1 rounded-full whitespace-nowrap ${
+                    category.id === selectedCategory
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-600'
+                  }`}
+                >
+                  {category.name}
+                </button>
+              ))}
+            </div>
           </div>
+
+          {showNewCategoryForm && (
+            <form onSubmit={handleAddCategory} className="mb-4 p-3 bg-gray-50 rounded-lg">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                New Category Name
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={newCategoryName}
+                  onChange={(e) => setNewCategoryName(e.target.value)}
+                  placeholder="Enter category name..."
+                  className="flex-1 px-3 py-1 border rounded"
+                  autoFocus
+                />
+                <button
+                  type="submit"
+                  className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
+                >
+                  Add
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowNewCategoryForm(false);
+                    setNewCategoryName('');
+                  }}
+                  className="px-3 py-1 bg-gray-100 text-gray-600 rounded hover:bg-gray-200"
+                >
+                  <XMarkIcon className="h-5 w-5" />
+                </button>
+              </div>
+            </form>
+          )}
         </div>
 
         <div className="overflow-y-auto flex-1">
