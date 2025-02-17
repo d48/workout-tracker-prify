@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
-import { PlusIcon, TrashIcon, ShareIcon, ClipboardDocumentIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, TrashIcon, ShareIcon, ClipboardDocumentIcon, DocumentDuplicateIcon } from '@heroicons/react/24/outline';
 import { supabase } from '../lib/supabase';
 import html2canvas from 'html2canvas';
 import { Database } from '../types/supabase';
@@ -10,6 +10,8 @@ type Workout = Database['public']['Tables']['workouts']['Row'] & {
   exercises: Array<{
     id: string;
     name: string;
+    notes: string | null;
+    icon_name: string | null;
     sets: Array<{
       reps: number | null;
       weight: number | null;
@@ -39,6 +41,8 @@ export default function WorkoutList() {
           exercises (
             id,
             name,
+            notes,
+            icon_name,
             sets (
               reps,
               weight,
@@ -61,6 +65,71 @@ export default function WorkoutList() {
       setWorkouts(sortedWorkouts);
     } catch (error) {
       console.error('Error fetching workouts:', error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function duplicateWorkout(workout: Workout, event: React.MouseEvent) {
+    event.stopPropagation();
+    setLoading(true);
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No authenticated user found');
+
+      // Create new workout with today's date
+      const { data: newWorkout, error: workoutError } = await supabase
+        .from('workouts')
+        .insert({
+          name: `${workout.name} (Copy)`,
+          date: new Date().toISOString(),
+          notes: workout.notes,
+          user_id: user.id
+        })
+        .select()
+        .single();
+
+      if (workoutError) throw workoutError;
+      if (!newWorkout) throw new Error('No workout data returned');
+
+      // Duplicate exercises
+      for (const exercise of workout.exercises) {
+        const { data: newExercise, error: exerciseError } = await supabase
+          .from('exercises')
+          .insert({
+            workout_id: newWorkout.id,
+            name: exercise.name,
+            notes: exercise.notes,
+            icon_name: exercise.icon_name
+          })
+          .select()
+          .single();
+
+        if (exerciseError) throw exerciseError;
+        if (!newExercise) throw new Error('No exercise data returned');
+
+        // Duplicate sets
+        const sets = exercise.sets.map(set => ({
+          exercise_id: newExercise.id,
+          reps: set.reps,
+          weight: set.weight,
+          distance: set.distance,
+          completed: false // Reset completion status for the new workout
+        }));
+
+        const { error: setsError } = await supabase
+          .from('sets')
+          .insert(sets);
+
+        if (setsError) throw setsError;
+      }
+
+      await fetchWorkouts();
+      navigate(`/workout/${newWorkout.id}`);
+    } catch (error) {
+      console.error('Error duplicating workout:', error);
+      alert('Failed to duplicate workout. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -255,6 +324,13 @@ export default function WorkoutList() {
                   )}
                 </div>
                 <div className="flex gap-2 action-buttons ml-4">
+                  <button
+                    onClick={(e) => duplicateWorkout(workout, e)}
+                    className="text-blue-600 hover:text-blue-800"
+                    title="Duplicate workout"
+                  >
+                    <DocumentDuplicateIcon className="h-5 w-5" />
+                  </button>
                   <button
                     onClick={(e) => shareWorkout(workout, e)}
                     className="text-blue-600 hover:text-blue-800"
