@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { format } from 'date-fns';
+import { format, startOfToday, startOfWeek, startOfMonth, endOfToday, endOfWeek, endOfMonth } from 'date-fns';
 import { PlusIcon, TrashIcon, ShareIcon, ClipboardDocumentIcon, DocumentDuplicateIcon } from '@heroicons/react/24/outline';
 import { supabase } from '../lib/supabase';
 import html2canvas from 'html2canvas';
@@ -51,6 +51,34 @@ export default function WorkoutList() {
             )
           )
         `);
+
+      // Apply date filters
+      if (filter !== 'all') {
+        let startDate: Date;
+        let endDate: Date;
+
+        switch (filter) {
+          case 'today':
+            startDate = startOfToday();
+            endDate = endOfToday();
+            break;
+          case 'week':
+            startDate = startOfWeek(new Date(), { weekStartsOn: 1 }); // Start week on Monday
+            endDate = endOfWeek(new Date(), { weekStartsOn: 1 });
+            break;
+          case 'month':
+            startDate = startOfMonth(new Date());
+            endDate = endOfMonth(new Date());
+            break;
+          default:
+            startDate = new Date(0);
+            endDate = new Date();
+        }
+
+        query = query
+          .gte('date', startDate.toISOString())
+          .lte('date', endDate.toISOString());
+      }
 
       const { data, error } = await query.order('date', { ascending: false });
 
