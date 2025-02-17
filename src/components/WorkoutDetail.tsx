@@ -212,6 +212,34 @@ export default function WorkoutDetail() {
     }
   }
 
+  async function updateExerciseNotes(exerciseId: string, notes: string) {
+    if (loading) return;
+    setLoading(true);
+
+    try {
+      const { error } = await supabase
+        .from('exercises')
+        .update({ notes })
+        .eq('id', exerciseId);
+
+      if (error) throw error;
+
+      setWorkout(prev => ({
+        ...prev,
+        exercises: prev.exercises.map(ex =>
+          ex.id === exerciseId ? { ...ex, notes } : ex
+        )
+      }));
+    } catch (error) {
+      console.error('Error updating exercise notes:', error);
+      if (error instanceof Error) {
+        setError(error.message);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function addSet(exerciseId: string) {
     if (loading) return;
     setLoading(true);
@@ -410,6 +438,13 @@ export default function WorkoutDetail() {
                   <TrashIcon className="h-5 w-5" />
                 </button>
               </div>
+
+              <textarea
+                value={exercise.notes || ''}
+                onChange={(e) => updateExerciseNotes(exercise.id, e.target.value)}
+                placeholder="Add notes for this exercise..."
+                className="w-full p-2 border rounded-lg text-sm mb-4 resize-none h-20"
+              />
 
               <ExerciseStats exercise={exercise} />
 
