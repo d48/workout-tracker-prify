@@ -8,20 +8,41 @@ export default function Auth() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [authInProgress, setAuthInProgress] = useState(false);
 
   useEffect(() => {
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN') {
         console.log('Successfully signed in:', session?.user?.email);
+      } else if (event === 'SIGNED_OUT') {
+        setAuthInProgress(false);
+      } else if (event === 'TOKEN_REFRESHED') {
+        console.log('Token refreshed successfully');
       }
     });
+
+    // Check for existing session
+    checkSession();
 
     return () => {
       authListener.subscription.unsubscribe();
     };
   }, []);
 
+  async function checkSession() {
+    try {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      if (error) throw error;
+      setAuthInProgress(!!session);
+    } catch (error) {
+      console.error('Error checking session:', error);
+      setAuthInProgress(false);
+    }
+  }
+
   const validateForm = () => {
+    setError('');
+    
     if (!email) {
       setError('Please enter your email address');
       return false;
@@ -39,40 +60,52 @@ export default function Auth() {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    
     if (!validateForm()) return;
     
     setLoading(true);
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: window.location.origin
-      }
-    });
+    setError('');
+    
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: window.location.origin
+        }
+      });
 
-    if (error) {
-      if (error.message === 'User already registered') {
-        setError('An account with this email already exists. Please sign in instead.');
-      } else {
-        setError(error.message);
+      if (error) {
+        if (error.message === 'User already registered') {
+          setError('An account with this email already exists. Please sign in instead.');
+        } else {
+          setError(error.message);
+        }
+        return;
       }
-    } else {
-      alert('Signed up successfully! You can now sign in.');
+
+      if (data.user) {
+        alert('Signed up successfully! You can now sign in.');
+        setEmail('');
+        setPassword('');
+      }
+    } catch (err) {
+      const authError = err as AuthError;
+      setError(authError.message || 'An unexpected error occurred');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    
     if (!validateForm()) return;
     
     setLoading(true);
+    setError('');
+    setAuthInProgress(true);
+    
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
@@ -80,13 +113,20 @@ export default function Auth() {
       if (error) {
         if (error.message === 'Invalid login credentials') {
           setError('Invalid email or password');
+        } else if (error.message.includes('rate limit')) {
+          setError('Too many attempts. Please try again later.');
         } else {
           setError(error.message);
         }
+        setAuthInProgress(false);
+      } else if (!data.session) {
+        setError('Unable to sign in. Please try again.');
+        setAuthInProgress(false);
       }
     } catch (err) {
       const authError = err as AuthError;
-      setError(authError.message || 'An error occurred while signing in. Please try again.');
+      setError(authError.message || 'An error occurred while signing in');
+      setAuthInProgress(false);
     } finally {
       setLoading(false);
     }
@@ -96,6 +136,7 @@ export default function Auth() {
     try {
       setError('');
       setLoading(true);
+      setAuthInProgress(true);
       
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
@@ -108,23 +149,35 @@ export default function Auth() {
         }
       });
       
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
 
       if (!data.url) {
         throw new Error('No OAuth URL returned');
       }
 
+      // The redirect will happen automatically
       console.log('Redirecting to Google OAuth...');
     } catch (err) {
       const authError = err as AuthError;
       console.error('Google Sign-in error:', authError);
       setError(authError.message);
+      setAuthInProgress(false);
     } finally {
       setLoading(false);
     }
   };
+
+  if (authInProgress) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+        <div className="bg-white w-full max-w-md rounded-2xl shadow-xl p-8 text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <h2 className="text-xl font-semibold text-gray-700 mb-2">Authenticating...</h2>
+          <p className="text-gray-500">Please wait while we sign you in.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
@@ -156,6 +209,7 @@ export default function Auth() {
               className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
               placeholder="you@example.com"
               required
+              disabled={loading}
             />
           </div>
           <div>
@@ -170,6 +224,7 @@ export default function Auth() {
               className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
               placeholder="••••••••"
               required
+              disabled={loading}
             />
           </div>
           <div className="space-y-4">
