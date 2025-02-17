@@ -13,7 +13,7 @@ export default function Navigation() {
   };
   
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200">
+    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-20">
       <div className="max-w-lg mx-auto px-4">
         <div className="flex justify-around py-3">
           <Link to="/" className={`flex flex-col items-center ${location.pathname === '/' ? 'text-blue-600' : 'text-gray-600'}`}>
