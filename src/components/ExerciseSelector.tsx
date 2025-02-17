@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { findIconByName, exerciseIcons, ExerciseIcon } from '../lib/exercise-icons';
-import { PlusIcon, MagnifyingGlassIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, MagnifyingGlassIcon, XMarkIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { Database } from '../types/supabase';
 
 type Category = Database['public']['Tables']['exercise_categories']['Row'];
@@ -23,6 +23,8 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
   const [iconSearch, setIconSearch] = useState('');
   const [showNewCategoryForm, setShowNewCategoryForm] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
+  const [editingExercise, setEditingExercise] = useState<ExerciseTemplate | null>(null);
+  const [error, setError] = useState('');
   const [newExercise, setNewExercise] = useState<Omit<ExerciseTemplate, 'id' | 'created_at' | 'user_id' | 'is_custom'>>({
     name: '',
     category_id: '',
@@ -80,7 +82,7 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
     e.preventDefault();
     
     if (!newCategoryName.trim()) {
-      alert('Please enter a category name');
+      setError('Please enter a category name');
       return;
     }
 
@@ -93,7 +95,7 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
 
       if (error) {
         if (error.code === '23505') { // Unique violation
-          alert('A category with this name already exists');
+          setError('A category with this name already exists');
         } else {
           throw error;
         }
@@ -106,10 +108,11 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
         setShowNewCategoryForm(false);
         setNewExercise(prev => ({ ...prev, category_id: data.id }));
         setSelectedCategory(data.id);
+        setError('');
       }
     } catch (error) {
       console.error('Error creating category:', error);
-      alert('Error creating category. Please try again.');
+      setError('Error creating category. Please try again.');
     }
   }
 
@@ -119,11 +122,23 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
     return matchesSearch && matchesCategory;
   });
 
-  async function handleCustomExerciseSubmit(e: React.FormEvent) {
+  async function handleExerciseSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setError('');
     
     if (!newExercise.name.trim() || !newExercise.category_id) {
-      alert('Please enter a name and select a category');
+      setError('Please enter a name and select a category');
+      return;
+    }
+
+    // Check for duplicate exercise name
+    const existingExercise = exercises.find(
+      ex => ex.name.toLowerCase() === newExercise.name.toLowerCase() &&
+           (!editingExercise || ex.id !== editingExercise.id)
+    );
+
+    if (existingExercise) {
+      setError('An exercise with this name already exists');
       return;
     }
 
@@ -134,36 +149,104 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
       return;
     }
 
-    const { data, error } = await supabase
-      .from('exercise_templates')
-      .insert({
-        ...newExercise,
-        user_id: user.id,
-        is_custom: true,
-        icon_name: selectedIcon.name
-      })
-      .select()
-      .single();
+    try {
+      if (editingExercise) {
+        // Update existing exercise
+        const { data, error } = await supabase
+          .from('exercise_templates')
+          .update({
+            ...newExercise,
+            icon_name: selectedIcon.name
+          })
+          .eq('id', editingExercise.id)
+          .select()
+          .single();
 
-    if (error) {
-      console.error('Error creating exercise:', error);
-      alert('Error creating exercise');
+        if (error) throw error;
+        if (data) {
+          setExercises(exercises.map(ex => ex.id === data.id ? data : ex));
+        }
+      } else {
+        // Create new exercise
+        const { data, error } = await supabase
+          .from('exercise_templates')
+          .insert({
+            ...newExercise,
+            user_id: user.id,
+            is_custom: true,
+            icon_name: selectedIcon.name
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+        if (data) {
+          setExercises([...exercises, data]);
+        }
+      }
+
+      resetForm();
+    } catch (error) {
+      console.error('Error saving exercise:', error);
+      setError('Error saving exercise. Please try again.');
+    }
+  }
+
+  async function handleDeleteExercise(exercise: ExerciseTemplate) {
+    if (!exercise.is_custom) {
+      setError('Cannot delete default exercises');
       return;
     }
 
-    if (data) {
-      fetchExercises();
-      
-      setNewExercise({
-        name: '',
-        category_id: '',
-        default_sets: null,
-        default_reps: null,
-        default_distance: null,
-        icon_name: exerciseIcons[0].name
-      });
-      setSelectedIcon(exerciseIcons[0]);
+    if (!confirm('Are you sure you want to delete this exercise?')) {
+      return;
     }
+
+    try {
+      const { error } = await supabase
+        .from('exercise_templates')
+        .delete()
+        .eq('id', exercise.id);
+
+      if (error) throw error;
+
+      setExercises(exercises.filter(ex => ex.id !== exercise.id));
+    } catch (error) {
+      console.error('Error deleting exercise:', error);
+      setError('Error deleting exercise. Please try again.');
+    }
+  }
+
+  function handleEditExercise(exercise: ExerciseTemplate) {
+    if (!exercise.is_custom) {
+      setError('Cannot edit default exercises');
+      return;
+    }
+
+    setEditingExercise(exercise);
+    setNewExercise({
+      name: exercise.name,
+      category_id: exercise.category_id,
+      default_sets: exercise.default_sets,
+      default_reps: exercise.default_reps,
+      default_distance: exercise.default_distance,
+      icon_name: exercise.icon_name || exerciseIcons[0].name
+    });
+    setSelectedIcon(findIconByName(exercise.icon_name || 'dumbbell'));
+  }
+
+  function resetForm() {
+    setNewExercise({
+      name: '',
+      category_id: '',
+      default_sets: null,
+      default_reps: null,
+      default_distance: null,
+      icon_name: exerciseIcons[0].name
+    });
+    setSelectedIcon(exerciseIcons[0]);
+    setEditingExercise(null);
+    setError('');
   }
 
   const handleNumberChange = (field: 'default_sets' | 'default_reps' | 'default_distance', value: string) => {
@@ -310,6 +393,12 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
               </div>
             </form>
           )}
+
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border-l-4 border-red-500 text-red-700">
+              {error}
+            </div>
+          )}
         </div>
 
         <div className="overflow-y-auto flex-1">
@@ -317,28 +406,50 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
             {filteredExercises.map((exercise) => {
               const iconInfo = findIconByName(exercise.icon_name || 'dumbbell');
               return (
-                <button
+                <div
                   key={exercise.id}
-                  onClick={() => {
-                    onSelect(exercise);
-                    onClose();
-                  }}
                   className="w-full text-left p-3 rounded hover:bg-gray-100 transition-colors flex items-center gap-3"
                 >
-                  <FontAwesomeIcon icon={iconInfo.iconDef} className="h-5 w-5 text-gray-600" />
-                  <div className="flex-1">
-                    <span>{exercise.name}</span>
-                    {exercise.is_custom && (
-                      <span className="text-sm text-gray-500 ml-2">Custom</span>
-                    )}
-                  </div>
-                </button>
+                  <button
+                    onClick={() => {
+                      onSelect(exercise);
+                      onClose();
+                    }}
+                    className="flex-1 flex items-center gap-3"
+                  >
+                    <FontAwesomeIcon icon={iconInfo.iconDef} className="h-5 w-5 text-gray-600" />
+                    <div>
+                      <span>{exercise.name}</span>
+                      {exercise.is_custom && (
+                        <span className="text-sm text-gray-500 ml-2">Custom</span>
+                      )}
+                    </div>
+                  </button>
+                  {exercise.is_custom && (
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleEditExercise(exercise)}
+                        className="p-1 text-blue-600 hover:text-blue-800"
+                        title="Edit exercise"
+                      >
+                        <PencilIcon className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteExercise(exercise)}
+                        className="p-1 text-red-600 hover:text-red-800"
+                        title="Delete exercise"
+                      >
+                        <TrashIcon className="h-4 w-4" />
+                      </button>
+                    </div>
+                  )}
+                </div>
               );
             })}
           </div>
 
           <div className="p-4 border-t">
-            <form onSubmit={handleCustomExerciseSubmit} className="space-y-4">
+            <form onSubmit={handleExerciseSubmit} className="space-y-4">
               <div className="flex gap-2">
                 <input
                   type="text"
@@ -358,7 +469,7 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
               
               <select
                 value={newExercise.category_id}
-                onChange={(e) => setNewExercise({ ...newExercise, category_id: e.target.value })}
+                onChange={(e) => setNewExercise(prev => ({ ...prev, category_id: e.target.value }))}
                 className="w-full p-2 border rounded"
               >
                 <option value="">Select category...</option>
@@ -410,9 +521,28 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
                 type="submit"
                 className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 flex items-center justify-center gap-2"
               >
-                <PlusIcon className="h-5 w-5" />
-                Add Custom Exercise
+                {editingExercise ? (
+                  <>
+                    <PencilIcon className="h-5 w-5" />
+                    Update Exercise
+                  </>
+                ) : (
+                  <>
+                    <PlusIcon className="h-5 w-5" />
+                    Add Custom Exercise
+                  </>
+                )}
               </button>
+
+              {editingExercise && (
+                <button
+                  type="button"
+                  onClick={resetForm}
+                  className="w-full bg-gray-100 text-gray-600 py-2 rounded hover:bg-gray-200"
+                >
+                  Cancel Editing
+                </button>
+              )}
             </form>
           </div>
         </div>
