@@ -369,7 +369,7 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
                 ))}
               </select>
 
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-3 gap-2">
                 <div>
                   <label className="block text-sm text-gray-600 mb-1">Default Sets</label>
                   <input
@@ -393,7 +393,7 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">Default Distance (mi)</label>
+                  <label className="block text-sm text-gray-600 mb-1">Miles</label>
                   <input
                     type="number"
                     value={newExercise.default_distance ?? ''}
