@@ -44,7 +44,7 @@ export default function WorkoutDetail() {
   const [retryCount, setRetryCount] = useState(0);
   const MAX_RETRIES = 3;
 
-  // Create a debounced version of the save function
+  // Create debounced save functions
   const debouncedSaveNotes = useCallback(
     debounce(async (exerciseId: string, notes: string) => {
       try {
@@ -56,6 +56,25 @@ export default function WorkoutDetail() {
         if (error) throw error;
       } catch (error) {
         console.error('Error saving exercise notes:', error);
+        if (error instanceof Error) {
+          setError(error.message);
+        }
+      }
+    }, 500),
+    []
+  );
+
+  const debouncedSaveSet = useCallback(
+    debounce(async (setId: string, updates: Partial<Set>) => {
+      try {
+        const { error } = await supabase
+          .from('sets')
+          .update(updates)
+          .eq('id', setId);
+
+        if (error) throw error;
+      } catch (error) {
+        console.error('Error updating set:', error);
         if (error instanceof Error) {
           setError(error.message);
         }
@@ -295,39 +314,24 @@ export default function WorkoutDetail() {
     }
   }
 
-  async function updateSet(exerciseId: string, setId: string, updates: Partial<Set>) {
-    if (loading) return;
-    setLoading(true);
+  function handleSetChange(exerciseId: string, setId: string, updates: Partial<Set>) {
+    // Update local state immediately
+    setWorkout(prev => ({
+      ...prev,
+      exercises: prev.exercises.map(exercise =>
+        exercise.id === exerciseId
+          ? {
+              ...exercise,
+              sets: exercise.sets.map(set =>
+                set.id === setId ? { ...set, ...updates } : set
+              )
+            }
+          : exercise
+      )
+    }));
 
-    try {
-      const { error } = await supabase
-        .from('sets')
-        .update(updates)
-        .eq('id', setId);
-
-      if (error) throw error;
-
-      setWorkout(prev => ({
-        ...prev,
-        exercises: prev.exercises.map(exercise =>
-          exercise.id === exerciseId
-            ? {
-                ...exercise,
-                sets: exercise.sets.map(set =>
-                  set.id === setId ? { ...set, ...updates } : set
-                )
-              }
-            : exercise
-        )
-      }));
-    } catch (error) {
-      console.error('Error updating set:', error);
-      if (error instanceof Error) {
-        setError(error.message);
-      }
-    } finally {
-      setLoading(false);
-    }
+    // Debounce the save to database
+    debouncedSaveSet(setId, updates);
   }
 
   async function deleteExercise(exerciseId: string) {
@@ -480,7 +484,7 @@ export default function WorkoutDetail() {
                       type="checkbox"
                       checked={set.completed}
                       onChange={(e) =>
-                        updateSet(exercise.id, set.id, {
+                        handleSetChange(exercise.id, set.id, {
                           completed: e.target.checked
                         })
                       }
@@ -491,7 +495,7 @@ export default function WorkoutDetail() {
                       step="any"
                       value={set.reps ?? ''}
                       onChange={(e) =>
-                        updateSet(exercise.id, set.id, {
+                        handleSetChange(exercise.id, set.id, {
                           reps: e.target.value === '' ? null : Number(e.target.value)
                         })
                       }
@@ -503,7 +507,7 @@ export default function WorkoutDetail() {
                       step="any"
                       value={set.weight ?? ''}
                       onChange={(e) =>
-                        updateSet(exercise.id, set.id, {
+                        handleSetChange(exercise.id, set.id, {
                           weight: e.target.value === '' ? null : Number(e.target.value)
                         })
                       }
@@ -515,7 +519,7 @@ export default function WorkoutDetail() {
                       step="any"
                       value={set.distance ?? ''}
                       onChange={(e) =>
-                        updateSet(exercise.id, set.id, {
+                        handleSetChange(exercise.id, set.id, {
                           distance: e.target.value === '' ? null : Number(e.target.value)
                         })
                       }
