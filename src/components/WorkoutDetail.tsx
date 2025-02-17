@@ -566,10 +566,18 @@ export default function WorkoutDetail() {
         })}
       </div>
 
+      {/* Empty state message when no exercises */}
+      {workout.exercises.length === 0 && (
+        <div className="bg-gray-50 rounded-lg p-8 text-center">
+          <p className="text-gray-600 mb-2">No exercises added yet</p>
+          <p className="text-sm text-gray-500">Click the plus button to add your first exercise</p>
+        </div>
+      )}
+
       <div className="fixed bottom-20 right-4">
         <button
           onClick={() => setShowExerciseSelector(true)}
-          className="bg-blue-600 text-white p-3 rounded-full shadow-lg hover:bg-blue-700"
+          className="bg-blue-600 text-white p-3 rounded-full shadow-lg hover:bg-blue-700 flex items-center gap-2"
           disabled={loading}
         >
           <PlusIcon className="h-6 w-6" />
