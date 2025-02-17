@@ -165,23 +165,114 @@ export default function WorkoutList() {
     }
   }
 
-  if (loading) {
-    return (
-      <div className="p-4">
-        <div className="flex justify-between items-center mb-6">
-          <div className="flex items-center gap-2">
-            <ClipboardDocumentIcon className="h-8 w-8 text-blue-600" />
-            <h1 className="text-2xl font-bold">My Workouts</h1>
-          </div>
-        </div>
+  const renderContent = () => {
+    if (loading) {
+      return (
         <div className="animate-pulse space-y-4">
           <div className="h-32 bg-gray-200 rounded-lg"></div>
           <div className="h-32 bg-gray-200 rounded-lg"></div>
           <div className="h-32 bg-gray-200 rounded-lg"></div>
         </div>
+      );
+    }
+
+    if (!loading && workouts.length === 0) {
+      return (
+        <div className="bg-white rounded-lg shadow-lg p-8 text-center">
+          <div className="mb-6">
+            <ClipboardDocumentIcon className="h-16 w-16 text-blue-600 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold text-gray-800 mb-2">Welcome to Workout Tracker!</h2>
+            <p className="text-gray-600 mb-4">
+              Start your fitness journey by creating your first workout. Track your exercises, sets, and progress all in one place.
+            </p>
+          </div>
+          <button
+            onClick={() => navigate('/workout/new')}
+            className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 inline-flex items-center gap-2"
+          >
+            <PlusIcon className="h-5 w-5" />
+            Create Your First Workout
+          </button>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-4">
+        {workouts.map((workout) => (
+          <div
+            key={workout.id}
+            ref={el => workoutRefs.current[workout.id] = el}
+            onClick={() => navigate(`/workout/${workout.id}`)}
+            className="bg-white rounded-lg shadow p-4 cursor-pointer hover:bg-gray-50 transition-colors"
+          >
+            <div className="flex justify-between items-start mb-3">
+              <div className="flex-1">
+                <h2 className="text-lg font-semibold hover:text-blue-600 transition-colors">
+                  {workout.name}
+                </h2>
+                <p className="text-sm text-gray-500">
+                  {format(new Date(workout.date), 'MMM d, yyyy')}
+                </p>
+                {workout.notes && (
+                  <p className="text-sm text-gray-600 mt-2 whitespace-pre-wrap">
+                    {workout.notes}
+                  </p>
+                )}
+              </div>
+              <div className="flex gap-2 action-buttons ml-4">
+                <button
+                  onClick={(e) => shareWorkout(workout, e)}
+                  className="text-blue-600 hover:text-blue-800"
+                  title="Share workout"
+                >
+                  <ShareIcon className="h-5 w-5" />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    deleteWorkout(workout.id);
+                  }}
+                  className="text-red-600 hover:text-red-800"
+                  title="Delete workout"
+                >
+                  <TrashIcon className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+
+            {workout.exercises?.length > 0 && (
+              <div className="space-y-2">
+                {workout.exercises.map((exercise) => {
+                  const stats = calculateExerciseStats(exercise);
+                  
+                  return (
+                    <div
+                      key={exercise.id}
+                      className="flex items-center gap-2 text-sm bg-gray-50 p-2 rounded"
+                    >
+                      <span className="font-medium">{exercise.name}</span>
+                      <div className="flex gap-3 ml-auto text-xs text-gray-600">
+                        {stats.totalReps && (
+                          <span>{stats.totalReps} reps</span>
+                        )}
+                        {stats.maxWeight && (
+                          <span>{stats.maxWeight} lbs</span>
+                        )}
+                        {stats.totalDistance && (
+                          <span>{stats.totalDistance.toFixed(1)} mi</span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        ))}
       </div>
     );
-  }
+  };
 
   return (
     <div className="p-4">
@@ -214,99 +305,7 @@ export default function WorkoutList() {
         ))}
       </div>
 
-      {workouts.length === 0 && !loading && (
-        <div className="bg-white rounded-lg shadow-lg p-8 text-center">
-          <div className="mb-6">
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">Welcome to Workout Tracker!</h2>
-            <p className="text-gray-600 mb-4">
-              Start your fitness journey by creating your first workout. Track your exercises, sets, and progress all in one place.
-            </p>
-          </div>
-          <button
-            onClick={() => navigate('/workout/new')}
-            className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 inline-flex items-center gap-2"
-          >
-            <PlusIcon className="h-5 w-5" />
-            Create Your First Workout
-          </button>
-        </div>
-      )}
-
-      {workouts.length > 0 && (
-        <div className="space-y-4">
-          {workouts.map((workout) => (
-            <div
-              key={workout.id}
-              ref={el => workoutRefs.current[workout.id] = el}
-              onClick={() => navigate(`/workout/${workout.id}`)}
-              className="bg-white rounded-lg shadow p-4 cursor-pointer hover:bg-gray-50 transition-colors"
-            >
-              <div className="flex justify-between items-start mb-3">
-                <div className="flex-1">
-                  <h2 className="text-lg font-semibold hover:text-blue-600 transition-colors">
-                    {workout.name}
-                  </h2>
-                  <p className="text-sm text-gray-500">
-                    {format(new Date(workout.date), 'MMM d, yyyy')}
-                  </p>
-                  {workout.notes && (
-                    <p className="text-sm text-gray-600 mt-2 whitespace-pre-wrap">
-                      {workout.notes}
-                    </p>
-                  )}
-                </div>
-                <div className="flex gap-2 action-buttons ml-4">
-                  <button
-                    onClick={(e) => shareWorkout(workout, e)}
-                    className="text-blue-600 hover:text-blue-800"
-                    title="Share workout"
-                  >
-                    <ShareIcon className="h-5 w-5" />
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      deleteWorkout(workout.id);
-                    }}
-                    className="text-red-600 hover:text-red-800"
-                    title="Delete workout"
-                  >
-                    <TrashIcon className="h-5 w-5" />
-                  </button>
-                </div>
-              </div>
-
-              {workout.exercises?.length > 0 && (
-                <div className="space-y-2">
-                  {workout.exercises.map((exercise) => {
-                    const stats = calculateExerciseStats(exercise);
-                    
-                    return (
-                      <div
-                        key={exercise.id}
-                        className="flex items-center gap-2 text-sm bg-gray-50 p-2 rounded"
-                      >
-                        <span className="font-medium">{exercise.name}</span>
-                        <div className="flex gap-3 ml-auto text-xs text-gray-600">
-                          {stats.totalReps && (
-                            <span>{stats.totalReps} reps</span>
-                          )}
-                          {stats.maxWeight && (
-                            <span>{stats.maxWeight} lbs</span>
-                          )}
-                          {stats.totalDistance && (
-                            <span>{stats.totalDistance.toFixed(1)} mi</span>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
+      {renderContent()}
     </div>
   );
 }

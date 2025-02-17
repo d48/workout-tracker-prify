@@ -1,604 +1,310 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { PlusIcon, TrashIcon, ExclamationCircleIcon } from '@heroicons/react/24/outline';
-import { supabase } from '../lib/supabase';
-import ExerciseSelector from './ExerciseSelector';
-import ExerciseStats from './ExerciseStats';
+import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
-import { findIconByName } from '../lib/exercise-icons';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { WorkoutFormData, Exercise, ExerciseTemplate, Set } from '../types/workout';
+import { PlusIcon, TrashIcon, ShareIcon, ClipboardDocumentIcon } from '@heroicons/react/24/outline';
+import { supabase } from '../lib/supabase';
+import html2canvas from 'html2canvas';
 import { Database } from '../types/supabase';
 
-type WorkoutResponse = Database['public']['Tables']['workouts']['Row'] & {
-  exercises: (Database['public']['Tables']['exercises']['Row'] & {
-    sets: Database['public']['Tables']['sets']['Row'][];
-  })[];
+type Workout = Database['public']['Tables']['workouts']['Row'] & {
+  exercises: Array<{
+    id: string;
+    name: string;
+    sets: Array<{
+      reps: number | null;
+      weight: number | null;
+      distance: number | null;
+      completed: boolean;
+    }>;
+  }>;
 };
 
-// Debounce helper function
-function debounce<T extends (...args: any[]) => any>(
-  func: T,
-  wait: number
-): (...args: Parameters<T>) => void {
-  let timeout: NodeJS.Timeout;
-  return (...args: Parameters<T>) => {
-    clearTimeout(timeout);
-    timeout = setTimeout(() => func(...args), wait);
-  };
-}
-
-export default function WorkoutDetail() {
-  const { id } = useParams<{ id: string }>();
+export default function WorkoutList() {
+  const [workouts, setWorkouts] = useState<Workout[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState('all');
   const navigate = useNavigate();
-  const [workout, setWorkout] = useState<WorkoutFormData>({
-    name: 'New Workout',
-    date: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
-    notes: '',
-    exercises: []
-  });
-  const [workoutId, setWorkoutId] = useState<string | null>(null);
-  const [showExerciseSelector, setShowExerciseSelector] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [retryCount, setRetryCount] = useState(0);
-  const MAX_RETRIES = 3;
-
-  // Create debounced save functions
-  const debouncedSaveNotes = useCallback(
-    debounce(async (exerciseId: string, notes: string) => {
-      try {
-        const { error } = await supabase
-          .from('exercises')
-          .update({ notes })
-          .eq('id', exerciseId);
-
-        if (error) throw error;
-      } catch (error) {
-        console.error('Error saving exercise notes:', error);
-        if (error instanceof Error) {
-          setError(error.message);
-        }
-      }
-    }, 500),
-    []
-  );
-
-  const debouncedSaveSet = useCallback(
-    debounce(async (setId: string, updates: Partial<Set>) => {
-      try {
-        const { error } = await supabase
-          .from('sets')
-          .update(updates)
-          .eq('id', setId);
-
-        if (error) throw error;
-      } catch (error) {
-        console.error('Error updating set:', error);
-        if (error instanceof Error) {
-          setError(error.message);
-        }
-      }
-    }, 500),
-    []
-  );
+  const workoutRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   useEffect(() => {
-    if (id === 'new') {
-      setWorkoutId(null);
-    } else if (id) {
-      setWorkoutId(id);
-      fetchWorkout();
-    }
-  }, [id, retryCount]);
+    fetchWorkouts();
+  }, [filter]);
 
-  async function fetchWorkout() {
-    if (loading || !id) return;
-    setLoading(true);
-    setError('');
-
+  async function fetchWorkouts() {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('workouts')
-        .select('*, exercises(*, sets(*))')
-        .eq('id', id)
-        .single<WorkoutResponse>();
+        .select(`
+          *,
+          exercises (
+            id,
+            name,
+            sets (
+              reps,
+              weight,
+              distance,
+              completed
+            )
+          )
+        `);
+
+      const { data, error } = await query.order('date', { ascending: false });
 
       if (error) throw error;
 
-      if (data) {
-        const formattedData: WorkoutFormData = {
-          name: data.name,
-          date: format(new Date(data.date), "yyyy-MM-dd'T'HH:mm"),
-          notes: data.notes ?? '',
-          exercises: data.exercises.map(exercise => ({
-            ...exercise,
-            sets: exercise.sets.map(set => ({
-              ...set,
-              reps: set.reps,
-              weight: set.weight,
-              distance: set.distance,
-              completed: set.completed
-            }))
-          }))
-        };
+      // Sort exercises alphabetically within each workout
+      const sortedWorkouts = data?.map(workout => ({
+        ...workout,
+        exercises: [...workout.exercises].sort((a, b) => a.name.localeCompare(b.name))
+      })) || [];
 
-        setWorkout(formattedData);
-        setError('');
-      }
+      setWorkouts(sortedWorkouts);
     } catch (error) {
-      console.error('Error fetching workout:', error);
-      setError('Failed to load workout. Please try again.');
-      
-      if (retryCount < MAX_RETRIES) {
-        setTimeout(() => {
-          setRetryCount(prev => prev + 1);
-        }, 1000 * (retryCount + 1));
-      } else if (error instanceof Error && error.message === 'Failed to fetch') {
-        setError('Unable to connect to the server. Please check your internet connection.');
-      }
+      console.error('Error fetching workouts:', error);
     } finally {
       setLoading(false);
     }
   }
 
-  async function ensureWorkoutExists(): Promise<string> {
-    if (workoutId) return workoutId;
-
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) throw new Error('No authenticated user found');
-
-      const isoDate = new Date(workout.date).toISOString();
-
-      const { data, error } = await supabase
-        .from('workouts')
-        .insert({
-          name: workout.name,
-          date: isoDate,
-          notes: workout.notes || null,
-          user_id: user.id
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-      if (!data) throw new Error('No data returned from insert');
-
-      setWorkoutId(data.id);
-      window.history.replaceState(null, '', `/workout/${data.id}`);
-      return data.id;
-    } catch (error) {
-      console.error('Error creating workout:', error);
-      setError('Failed to create workout. Please try again.');
-      throw error;
-    }
-  }
-
-  async function saveWorkout() {
-    if (loading) return;
-    setLoading(true);
-
-    try {
-      const currentWorkoutId = await ensureWorkoutExists();
-      const isoDate = new Date(workout.date).toISOString();
-
-      const { error } = await supabase
-        .from('workouts')
-        .update({
-          name: workout.name,
-          date: isoDate,
-          notes: workout.notes || null
-        })
-        .eq('id', currentWorkoutId);
-
-      if (error) throw error;
-      navigate('/');
-    } catch (error) {
-      console.error('Error saving workout:', error);
-      setError('Failed to save workout. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function handleExerciseSelect(template: ExerciseTemplate) {
-    if (loading) return;
-    setLoading(true);
-
-    try {
-      const currentWorkoutId = await ensureWorkoutExists();
-
-      const { data: exercise, error: exerciseError } = await supabase
-        .from('exercises')
-        .insert({
-          workout_id: currentWorkoutId,
-          name: template.name,
-          notes: '',
-          icon_name: template.icon_name
-        })
-        .select()
-        .single();
-
-      if (exerciseError) throw exerciseError;
-      if (!exercise) throw new Error('No exercise data returned');
-
-      const defaultSets = template.default_sets ?? 1;
-      const sets = Array(defaultSets).fill(null).map(() => ({
-        exercise_id: exercise.id,
-        reps: template.default_reps,
-        weight: null,
-        distance: template.default_distance,
-        completed: false
-      }));
-
-      const { error: setsError } = await supabase
-        .from('sets')
-        .insert(sets);
-
-      if (setsError) throw setsError;
-
-      const { data: updatedExercise, error: fetchError } = await supabase
-        .from('exercises')
-        .select('*, sets(*)')
-        .eq('id', exercise.id)
-        .single();
-
-      if (fetchError) throw fetchError;
-      if (!updatedExercise) throw new Error('No updated exercise data returned');
-
-      setWorkout(prev => ({
-        ...prev,
-        exercises: [...prev.exercises, updatedExercise as Exercise]
-      }));
-    } catch (error) {
-      console.error('Error adding exercise:', error);
-      if (error instanceof Error) {
-        setError(error.message);
-      }
-    } finally {
-      setLoading(false);
-      setShowExerciseSelector(false);
-    }
-  }
-
-  function handleExerciseNotesChange(exerciseId: string, notes: string) {
-    // Update local state immediately
-    setWorkout(prev => ({
-      ...prev,
-      exercises: prev.exercises.map(ex =>
-        ex.id === exerciseId ? { ...ex, notes } : ex
-      )
-    }));
-
-    // Debounce the save to database
-    debouncedSaveNotes(exerciseId, notes);
-  }
-
-  async function addSet(exerciseId: string) {
-    if (loading) return;
-    setLoading(true);
-
-    try {
-      const { data, error } = await supabase
-        .from('sets')
-        .insert({
-          exercise_id: exerciseId,
-          reps: null,
-          weight: null,
-          distance: null,
-          completed: false
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-      if (!data) throw new Error('No set data returned');
-
-      setWorkout(prev => ({
-        ...prev,
-        exercises: prev.exercises.map(exercise =>
-          exercise.id === exerciseId
-            ? { ...exercise, sets: [...exercise.sets, data as Set] }
-            : exercise
-        )
-      }));
-    } catch (error) {
-      console.error('Error adding set:', error);
-      if (error instanceof Error) {
-        setError(error.message);
-      }
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  function handleSetChange(exerciseId: string, setId: string, updates: Partial<Set>) {
-    // Update local state immediately
-    setWorkout(prev => ({
-      ...prev,
-      exercises: prev.exercises.map(exercise =>
-        exercise.id === exerciseId
-          ? {
-              ...exercise,
-              sets: exercise.sets.map(set =>
-                set.id === setId ? { ...set, ...updates } : set
-              )
-            }
-          : exercise
-      )
-    }));
-
-    // Debounce the save to database
-    debouncedSaveSet(setId, updates);
-  }
-
-  async function deleteExercise(exerciseId: string) {
-    if (!confirm('Are you sure you want to delete this exercise?')) {
+  async function deleteWorkout(id: string) {
+    if (!confirm('Are you sure you want to delete this workout?')) {
       return;
     }
 
-    if (loading) return;
-    setLoading(true);
+    const { error } = await supabase
+      .from('workouts')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error deleting workout:', error);
+      return;
+    }
+
+    setWorkouts(workouts.filter(w => w.id !== id));
+  }
+
+  function calculateExerciseStats(exercise: Workout['exercises'][0]) {
+    const completedSets = exercise.sets.filter(set => set.completed);
+    const totalReps = completedSets.reduce((sum, set) => sum + (set.reps || 0), 0);
+    const maxWeight = Math.max(...completedSets.map(set => set.weight || 0));
+    const totalDistance = completedSets.reduce((sum, set) => sum + (set.distance || 0), 0);
+
+    return {
+      totalReps: totalReps > 0 ? totalReps : null,
+      maxWeight: maxWeight > 0 ? maxWeight : null,
+      totalDistance: totalDistance > 0 ? totalDistance : null
+    };
+  }
+
+  async function shareWorkout(workout: Workout, event: React.MouseEvent) {
+    event.stopPropagation();
+    
+    const workoutCard = workoutRefs.current[workout.id];
+    if (!workoutCard) return;
 
     try {
-      const { error } = await supabase
-        .from('exercises')
-        .delete()
-        .eq('id', exerciseId);
+      const clone = workoutCard.cloneNode(true) as HTMLElement;
+      
+      clone.style.position = 'fixed';
+      clone.style.left = '-9999px';
+      clone.style.top = '0';
+      clone.style.background = 'white';
+      clone.style.padding = '20px';
+      clone.style.borderRadius = '8px';
+      clone.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
+      clone.style.width = `${workoutCard.offsetWidth}px`;
+      clone.style.maxHeight = 'none';
+      clone.style.overflow = 'visible';
+      
+      const actionButtons = clone.querySelectorAll('.action-buttons');
+      actionButtons.forEach(button => button.remove());
+      
+      document.body.appendChild(clone);
 
-      if (error) throw error;
+      await new Promise(resolve => setTimeout(resolve, 100));
 
-      setWorkout(prev => ({
-        ...prev,
-        exercises: prev.exercises.filter(ex => ex.id !== exerciseId)
-      }));
-    } catch (error) {
-      console.error('Error deleting exercise:', error);
-      if (error instanceof Error) {
-        setError(error.message);
+      const canvas = await html2canvas(clone, {
+        backgroundColor: 'white',
+        scale: 2,
+        logging: false,
+        useCORS: true,
+        windowHeight: clone.scrollHeight,
+        height: clone.scrollHeight,
+        onclone: (clonedDoc) => {
+          const clonedElement = clonedDoc.body.firstChild as HTMLElement;
+          clonedElement.style.transform = 'none';
+        }
+      });
+
+      document.body.removeChild(clone);
+
+      const blob = await new Promise<Blob>(resolve => canvas.toBlob(blob => resolve(blob!), 'image/png'));
+      
+      try {
+        await navigator.clipboard.write([
+          new ClipboardItem({
+            'image/png': blob
+          })
+        ]);
+        alert('Workout summary copied to clipboard!');
+      } catch (err) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${workout.name}-${format(new Date(workout.date), 'yyyy-MM-dd')}.png`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        alert('Workout summary downloaded! (Your browser doesn\'t support direct clipboard access)');
       }
-    } finally {
-      setLoading(false);
+    } catch (error) {
+      console.error('Error sharing workout:', error);
+      alert('Failed to share workout. Please try again.');
     }
   }
 
-  function handleDateChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const newDate = e.target.value;
-    setWorkout(prev => ({ ...prev, date: newDate }));
+  const WelcomeMessage = () => (
+    <div className="bg-white rounded-lg shadow-lg p-8 text-center">
+      <div className="mb-6">
+        <ClipboardDocumentIcon className="h-16 w-16 text-blue-600 mx-auto mb-4" />
+        <h2 className="text-2xl font-bold text-gray-800 mb-2">Welcome to Workout Tracker!</h2>
+        <p className="text-gray-600 mb-4">
+          Start your fitness journey by creating your first workout. Track your exercises, sets, and progress all in one place.
+        </p>
+      </div>
+      <button
+        onClick={() => navigate('/workout/new')}
+        className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 inline-flex items-center gap-2"
+      >
+        <PlusIcon className="h-5 w-5" />
+        Create Your First Workout
+      </button>
+    </div>
+  );
+
+  if (loading) {
+    return (
+      <div className="p-4">
+        <div className="flex justify-between items-center mb-6">
+          <div className="flex items-center gap-2">
+            <ClipboardDocumentIcon className="h-8 w-8 text-blue-600" />
+            <h1 className="text-2xl font-bold">My Workouts</h1>
+          </div>
+        </div>
+        <div className="text-center text-gray-500 mt-8">Loading workouts...</div>
+      </div>
+    );
   }
 
   return (
     <div className="p-4">
-      {error && (
-        <div className="mb-4 p-4 bg-red-50 border-l-4 border-red-500 flex items-center gap-2">
-          <ExclamationCircleIcon className="h-5 w-5 text-red-500" />
-          <p className="text-red-700">{error}</p>
-          <button 
-            onClick={() => {
-              setRetryCount(0);
-              setError('');
-              fetchWorkout();
-            }}
-            className="ml-auto text-sm text-red-600 hover:text-red-800"
-          >
-            Retry
-          </button>
+      <div className="flex justify-between items-center mb-6">
+        <div className="flex items-center gap-2">
+          <ClipboardDocumentIcon className="h-8 w-8 text-blue-600" />
+          <h1 className="text-2xl font-bold">My Workouts</h1>
         </div>
-      )}
-
-      <div className="mb-6 space-y-4">
-        <input
-          type="text"
-          value={workout.name}
-          onChange={(e) => setWorkout(prev => ({ ...prev, name: e.target.value }))}
-          className="text-2xl font-bold w-full bg-transparent"
-          placeholder="Workout Name"
-        />
-        <input
-          type="datetime-local"
-          value={workout.date}
-          onChange={handleDateChange}
-          className="block w-full"
-        />
-        <textarea
-          value={workout.notes || ''}
-          onChange={(e) => setWorkout(prev => ({ ...prev, notes: e.target.value }))}
-          placeholder="Add workout notes..."
-          className="w-full p-3 border rounded-lg resize-none h-24"
-        />
-      </div>
-
-      <div className="space-y-6">
-        {workout.exercises?.map((exercise) => {
-          const iconInfo = findIconByName(exercise.icon_name || 'dumbbell');
-
-          return (
-            <div key={exercise.id} className="bg-white rounded-lg shadow p-4">
-              <div className="flex justify-between items-center mb-4">
-                <div className="flex items-center gap-2 flex-1">
-                  <FontAwesomeIcon 
-                    icon={iconInfo.iconDef} 
-                    className="h-6 w-6 text-gray-600" 
-                  />
-                  <input
-                    type="text"
-                    value={exercise.name}
-                    onChange={async (e) => {
-                      const newName = e.target.value;
-                      const newIconName = findIconByName(exercise.icon_name || 'dumbbell').name;
-                      
-                      const { error } = await supabase
-                        .from('exercises')
-                        .update({ 
-                          name: newName,
-                          icon_name: newIconName
-                        })
-                        .eq('id', exercise.id);
-
-                      if (!error) {
-                        setWorkout(prev => ({
-                          ...prev,
-                          exercises: prev.exercises.map(ex =>
-                            ex.id === exercise.id
-                              ? { ...ex, name: newName, icon_name: newIconName }
-                              : ex
-                          )
-                        }));
-                      }
-                    }}
-                    className="text-lg font-semibold flex-1"
-                  />
-                </div>
-                <button
-                  onClick={() => deleteExercise(exercise.id)}
-                  className="text-red-600 hover:text-red-800 p-1"
-                  title="Delete exercise"
-                >
-                  <TrashIcon className="h-5 w-5" />
-                </button>
-              </div>
-
-              <textarea
-                value={exercise.notes || ''}
-                onChange={(e) => handleExerciseNotesChange(exercise.id, e.target.value)}
-                placeholder="Add notes for this exercise..."
-                className="w-full p-2 border rounded-lg text-sm mb-4 resize-none h-20"
-              />
-
-              <ExerciseStats exercise={exercise} />
-
-              <div className="mt-4 space-y-4">
-                <div className="grid grid-cols-[auto,1fr,1fr,1fr,auto] gap-4 px-2">
-                  <div className="w-5"></div>
-                  <div className="text-sm font-medium text-gray-600">Reps</div>
-                  <div className="text-sm font-medium text-gray-600">Weight (lbs)</div>
-                  <div className="text-sm font-medium text-gray-600">Distance (mi)</div>
-                  <div className="w-5"></div>
-                </div>
-
-                {exercise.sets?.map((set) => (
-                  <div key={set.id} className="grid grid-cols-[auto,1fr,1fr,1fr,auto] gap-4 items-center">
-                    <input
-                      type="checkbox"
-                      checked={set.completed}
-                      onChange={(e) =>
-                        handleSetChange(exercise.id, set.id, {
-                          completed: e.target.checked
-                        })
-                      }
-                      className="h-5 w-5"
-                    />
-                    <input
-                      type="number"
-                      step="any"
-                      value={set.reps ?? ''}
-                      onChange={(e) =>
-                        handleSetChange(exercise.id, set.id, {
-                          reps: e.target.value === '' ? null : Number(e.target.value)
-                        })
-                      }
-                      className="w-full p-2 border rounded"
-                      placeholder="0"
-                    />
-                    <input
-                      type="number"
-                      step="any"
-                      value={set.weight ?? ''}
-                      onChange={(e) =>
-                        handleSetChange(exercise.id, set.id, {
-                          weight: e.target.value === '' ? null : Number(e.target.value)
-                        })
-                      }
-                      className="w-full p-2 border rounded"
-                      placeholder="0"
-                    />
-                    <input
-                      type="number"
-                      step="any"
-                      value={set.distance ?? ''}
-                      onChange={(e) =>
-                        handleSetChange(exercise.id, set.id, {
-                          distance: e.target.value === '' ? null : Number(e.target.value)
-                        })
-                      }
-                      className="w-full p-2 border rounded"
-                      placeholder="0"
-                    />
-                    <button
-                      onClick={async () => {
-                        const { error } = await supabase
-                          .from('sets')
-                          .delete()
-                          .eq('id', set.id);
-
-                        if (!error) {
-                          setWorkout(prev => ({
-                            ...prev,
-                            exercises: prev.exercises.map(ex =>
-                              ex.id === exercise.id
-                                ? {
-                                    ...ex,
-                                    sets: ex.sets.filter(s => s.id !== set.id)
-                                  }
-                                : ex
-                            )
-                          }));
-                        }
-                      }}
-                      className="text-red-600 hover:text-red-800"
-                    >
-                      <TrashIcon className="h-5 w-5" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-
-              <button
-                onClick={() => addSet(exercise.id)}
-                className="mt-4 text-blue-600 text-sm hover:text-blue-800"
-              >
-                Add Set
-              </button>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Empty state message when no exercises */}
-      {workout.exercises.length === 0 && (
-        <div className="bg-gray-50 rounded-lg p-8 text-center">
-          <p className="text-gray-600 mb-2">No exercises added yet</p>
-          <p className="text-sm text-gray-500">Click the plus button to add your first exercise</p>
-        </div>
-      )}
-
-      <div className="fixed bottom-20 right-4">
         <button
-          onClick={() => setShowExerciseSelector(true)}
-          className="bg-blue-600 text-white p-3 rounded-full shadow-lg hover:bg-blue-700 flex items-center gap-2"
-          disabled={loading}
+          onClick={() => navigate('/workout/new')}
+          className="bg-blue-600 text-white p-2 rounded-full hover:bg-blue-700"
         >
           <PlusIcon className="h-6 w-6" />
         </button>
       </div>
 
-      <div className="fixed bottom-20 left-4">
-        <button
-          onClick={saveWorkout}
-          className="bg-green-600 text-white px-6 py-3 rounded-full shadow-lg hover:bg-green-700"
-          disabled={loading}
-        >
-          Save
-        </button>
+      <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
+        {['all', 'today', 'week', 'month'].map((period) => (
+          <button
+            key={period}
+            onClick={() => setFilter(period)}
+            className={`px-4 py-2 rounded-full whitespace-nowrap ${
+              filter === period
+                ? 'bg-blue-600 text-white'
+                : 'bg-white text-gray-600'
+            }`}
+          >
+            {period === 'all' ? 'All Time' : period.charAt(0).toUpperCase() + period.slice(1)}
+          </button>
+        ))}
       </div>
 
-      {showExerciseSelector && (
-        <ExerciseSelector
-          onSelect={handleExerciseSelect}
-          onClose={() => setShowExerciseSelector(false)}
-        />
+      {workouts.length === 0 ? (
+        <WelcomeMessage />
+      ) : (
+        <div className="space-y-4">
+          {workouts.map((workout) => (
+            <div
+              key={workout.id}
+              ref={el => workoutRefs.current[workout.id] = el}
+              onClick={() => navigate(`/workout/${workout.id}`)}
+              className="bg-white rounded-lg shadow p-4 cursor-pointer hover:bg-gray-50 transition-colors"
+            >
+              <div className="flex justify-between items-start mb-3">
+                <div className="flex-1">
+                  <h2 className="text-lg font-semibold hover:text-blue-600 transition-colors">
+                    {workout.name}
+                  </h2>
+                  <p className="text-sm text-gray-500">
+                    {format(new Date(workout.date), 'MMM d, yyyy')}
+                  </p>
+                  {workout.notes && (
+                    <p className="text-sm text-gray-600 mt-2 whitespace-pre-wrap">
+                      {workout.notes}
+                    </p>
+                  )}
+                </div>
+                <div className="flex gap-2 action-buttons ml-4">
+                  <button
+                    onClick={(e) => shareWorkout(workout, e)}
+                    className="text-blue-600 hover:text-blue-800"
+                    title="Share workout"
+                  >
+                    <ShareIcon className="h-5 w-5" />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deleteWorkout(workout.id);
+                    }}
+                    className="text-red-600 hover:text-red-800"
+                    title="Delete workout"
+                  >
+                    <TrashIcon className="h-5 w-5" />
+                  </button>
+                </div>
+              </div>
+
+              {workout.exercises?.length > 0 && (
+                <div className="space-y-2">
+                  {workout.exercises.map((exercise) => {
+                    const stats = calculateExerciseStats(exercise);
+                    
+                    return (
+                      <div
+                        key={exercise.id}
+                        className="flex items-center gap-2 text-sm bg-gray-50 p-2 rounded"
+                      >
+                        <span className="font-medium">{exercise.name}</span>
+                        <div className="flex gap-3 ml-auto text-xs text-gray-600">
+                          {stats.totalReps && (
+                            <span>{stats.totalReps} reps</span>
+                          )}
+                          {stats.maxWeight && (
+                            <span>{stats.maxWeight} lbs</span>
+                          )}
+                          {stats.totalDistance && (
+                            <span>{stats.totalDistance.toFixed(1)} mi</span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );
