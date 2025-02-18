@@ -281,11 +281,6 @@ export default function WorkoutList() {
   const WelcomeMessage = () => (
     <div className="bg-white rounded-lg shadow-lg p-8 text-center">
       <div className="mb-6">
-        <img 
-          src={prifyLogo}
-          alt="PRIFY Workout Tracker" 
-          className="h-16 mx-auto mb-4"
-        />
         <h2 className="text-2xl font-bold text-gray-800 mb-2">Welcome to PRIFY!</h2>
         <p className="text-gray-600 mb-4">
           Start tracking your workouts and breaking personal records (PRs). Whether you're lifting heavier, running faster, or pushing harder, PRIFY helps you achieve and celebrate every milestone in your fitness journey.
@@ -296,7 +291,7 @@ export default function WorkoutList() {
         className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 inline-flex items-center gap-2"
       >
         <PlusIcon className="h-5 w-5" />
-        Create Your First Workout
+        Create a Workout
       </button>
     </div>
   );
@@ -359,7 +354,7 @@ export default function WorkoutList() {
               <img 
                 src={prifyLogo}
                 alt="PRIFY Workout Tracker" 
-                className="h-8"
+                className="h-16"
               />
               <button
                 onClick={() => navigate('/workout/new')}
@@ -383,7 +378,7 @@ export default function WorkoutList() {
             <img 
               src={prifyLogo}
               alt="PRIFY Workout Tracker" 
-              className="h-8"
+              className="h-16"
             />
             <button
               onClick={() => navigate('/workout/new')}

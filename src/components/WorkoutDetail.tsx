@@ -390,7 +390,7 @@ export default function WorkoutDetail() {
           <img 
             src={prifyLogo}
             alt="PRIFY Workout Tracker" 
-            className="h-8 mx-auto"
+            className="h-16 mx-auto"
           />
         </div>
       </div>
