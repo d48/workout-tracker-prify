@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { ClipboardDocumentIcon } from '@heroicons/react/24/outline';
 import { AuthError } from '@supabase/supabase-js';
+import prifyLogo from '../images/prify-logo.svg';
 
 export default function Auth() {
   const [loading, setLoading] = useState(false);
@@ -183,11 +183,12 @@ export default function Auth() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
       <div className="bg-white w-full max-w-md rounded-2xl shadow-xl p-8">
         <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-3 mb-2">
-            <ClipboardDocumentIcon className="h-8 w-8 text-blue-600" />
-            <h1 className="text-3xl font-bold text-gray-900">Workout Tracker</h1>
-          </div>
-          <p className="text-gray-600">Sign in to track your fitness journey</p>
+          <img 
+            src={prifyLogo}
+            alt="PRIFY Workout Tracker" 
+            className="h-12 mx-auto mb-4"
+          />
+          <p className="text-gray-600">Track your workouts and break your personal records (PRs)</p>
         </div>
         
         {error && (

@@ -9,6 +9,7 @@ import { findIconByName } from '../lib/exercise-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { WorkoutFormData, Exercise, ExerciseTemplate, Set } from '../types/workout';
 import { Database } from '../types/supabase';
+import prifyLogo from '../images/prify-logo.svg';
 
 type WorkoutResponse = Database['public']['Tables']['workouts']['Row'] & {
   exercises: (Database['public']['Tables']['exercises']['Row'] & {
@@ -368,249 +369,270 @@ export default function WorkoutDetail() {
   if (loading) {
     return (
       <div className="p-4">
-        <div className="text-center text-gray-500 mt-8">Loading workout...</div>
+        <div className="fixed top-0 left-0 right-0 bg-white shadow-md z-10">
+          <div className="max-w-lg mx-auto px-4 py-4">
+            <img 
+              src={prifyLogo}
+              alt="PRIFY Workout Tracker" 
+              className="h-8 mx-auto"
+            />
+          </div>
+        </div>
+        <div className="pt-24 text-center text-gray-500">Loading workout...</div>
       </div>
     );
   }
 
   return (
     <div className="p-4 pb-32">
-      {error && (
-        <div className="mb-4 p-4 bg-red-50 border-l-4 border-red-500 flex items-center gap-2">
-          <ExclamationCircleIcon className="h-5 w-5 text-red-500" />
-          <p className="text-red-700">{error}</p>
-          <button 
-            onClick={() => {
-              setRetryCount(0);
-              setError('');
-              fetchWorkout();
-            }}
-            className="ml-auto text-sm text-red-600 hover:text-red-800"
-          >
-            Retry
-          </button>
-        </div>
-      )}
-
-      <div className="mb-6 space-y-4">
-        <div className="relative group">
-          <input
-            ref={titleInputRef}
-            type="text"
-            value={workout.name}
-            onChange={(e) => setWorkout(prev => ({ ...prev, name: e.target.value }))}
-            className="text-2xl font-bold w-full bg-transparent pr-8 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-lg transition-colors p-2"
-            placeholder="Workout Name"
+      <div className="fixed top-0 left-0 right-0 bg-white shadow-md z-10">
+        <div className="max-w-lg mx-auto px-4 py-4">
+          <img 
+            src={prifyLogo}
+            alt="PRIFY Workout Tracker" 
+            className="h-8 mx-auto"
           />
-          <button
-            onClick={() => titleInputRef.current?.focus()}
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-          >
-            <PencilIcon className="h-5 w-5" />
-          </button>
         </div>
-        <input
-          type="datetime-local"
-          value={workout.date}
-          onChange={handleDateChange}
-          className="block w-full"
-        />
-        <textarea
-          value={workout.notes || ''}
-          onChange={(e) => setWorkout(prev => ({ ...prev, notes: e.target.value }))}
-          placeholder="Add workout notes..."
-          className="w-full p-3 border rounded-lg resize-none h-24"
-        />
       </div>
 
-      <div className="space-y-6">
-        {workout.exercises.map((exercise) => {
-          const iconInfo = findIconByName(exercise.icon_name || 'dumbbell');
+      <div className="pt-24">
+        {error && (
+          <div className="mb-4 p-4 bg-red-50 border-l-4 border-red-500 flex items-center gap-2">
+            <ExclamationCircleIcon className="h-5 w-5 text-red-500" />
+            <p className="text-red-700">{error}</p>
+            <button 
+              onClick={() => {
+                setRetryCount(0);
+                setError('');
+                fetchWorkout();
+              }}
+              className="ml-auto text-sm text-red-600 hover:text-red-800"
+            >
+              Retry
+            </button>
+          </div>
+        )}
 
-          return (
-            <div key={exercise.id} className="bg-white rounded-lg shadow p-4">
-              <div className="flex justify-between items-center mb-4">
-                <div className="flex items-center gap-2 flex-1">
-                  <FontAwesomeIcon 
-                    icon={iconInfo.iconDef} 
-                    className="h-6 w-6 text-gray-600" 
-                  />
-                  <input
-                    type="text"
-                    value={exercise.name}
-                    onChange={async (e) => {
-                      const newName = e.target.value;
-                      const newIconName = findIconByName(exercise.icon_name || 'dumbbell').name;
-                      
-                      const { error } = await supabase
-                        .from('exercises')
-                        .update({ 
-                          name: newName,
-                          icon_name: newIconName
-                        })
-                        .eq('id', exercise.id);
+        <div className="mb-6 space-y-4">
+          <div className="relative group">
+            <input
+              ref={titleInputRef}
+              type="text"
+              value={workout.name}
+              onChange={(e) => setWorkout(prev => ({ ...prev, name: e.target.value }))}
+              className="text-2xl font-bold w-full bg-transparent pr-8 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-lg transition-colors p-2"
+              placeholder="Workout Name"
+            />
+            <button
+              onClick={() => titleInputRef.current?.focus()}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <PencilIcon className="h-5 w-5" />
+            </button>
+          </div>
+          <input
+            type="datetime-local"
+            value={workout.date}
+            onChange={handleDateChange}
+            className="block w-full"
+          />
+          <textarea
+            value={workout.notes || ''}
+            onChange={(e) => setWorkout(prev => ({ ...prev, notes: e.target.value }))}
+            placeholder="Add workout notes..."
+            className="w-full p-3 border rounded-lg resize-none h-24"
+          />
+        </div>
 
-                      if (!error) {
-                        setWorkout(prev => ({
-                          ...prev,
-                          exercises: prev.exercises.map(ex =>
-                            ex.id === exercise.id
-                              ? { ...ex, name: newName, icon_name: newIconName }
-                              : ex
-                          )
-                        }));
-                      }
-                    }}
-                    className="text-lg font-semibold flex-1"
-                  />
-                </div>
-                <button
-                  onClick={() => deleteExercise(exercise.id)}
-                  className="text-red-600 hover:text-red-800 p-1"
-                  title="Delete exercise"
-                >
-                  <TrashIcon className="h-5 w-5" />
-                </button>
-              </div>
+        <div className="space-y-6">
+          {workout.exercises.map((exercise) => {
+            const iconInfo = findIconByName(exercise.icon_name || 'dumbbell');
 
-              <textarea
-                value={exercise.notes || ''}
-                onChange={(e) => handleExerciseNotesChange(exercise.id, e.target.value)}
-                placeholder="Add notes for this exercise..."
-                className="w-full p-2 border rounded-lg text-sm mb-4 resize-none h-20"
-              />
-
-              <ExerciseStats exercise={exercise} />
-
-              <div className="mt-4 space-y-4">
-                <div className="grid grid-cols-[auto,1fr,1fr,1fr,auto] gap-4 px-2">
-                  <div className="w-5"></div>
-                  <div className="text-sm font-medium text-gray-600">Reps</div>
-                  <div className="text-sm font-medium text-gray-600">Weight (lbs)</div>
-                  <div className="text-sm font-medium text-gray-600">Distance (mi)</div>
-                  <div className="w-5"></div>
-                </div>
-
-                {exercise.sets?.map((set) => (
-                  <div key={set.id} className="grid grid-cols-[auto,1fr,1fr,1fr,auto] gap-4 items-center">
-                    <input
-                      type="checkbox"
-                      checked={set.completed}
-                      onChange={(e) =>
-                        handleSetChange(exercise.id, set.id, {
-                          completed: e.target.checked
-                        })
-                      }
-                      className="h-5 w-5"
+            return (
+              <div key={exercise.id} className="bg-white rounded-lg shadow p-4">
+                <div className="flex justify-between items-center mb-4">
+                  <div className="flex items-center gap-2 flex-1">
+                    <FontAwesomeIcon 
+                      icon={iconInfo.iconDef} 
+                      className="h-6 w-6 text-gray-600" 
                     />
                     <input
-                      type="number"
-                      step="any"
-                      value={set.reps ?? ''}
-                      onChange={(e) =>
-                        handleSetChange(exercise.id, set.id, {
-                          reps: e.target.value === '' ? null : Number(e.target.value)
-                        })
-                      }
-                      className="w-full p-2 border rounded"
-                      placeholder="0"
-                    />
-                    <input
-                      type="number"
-                      step="any"
-                      value={set.weight ?? ''}
-                      onChange={(e) =>
-                        handleSetChange(exercise.id, set.id, {
-                          weight: e.target.value === '' ? null : Number(e.target.value)
-                        })
-                      }
-                      className="w-full p-2 border rounded"
-                      placeholder="0"
-                    />
-                    <input
-                      type="number"
-                      step="any"
-                      value={set.distance ?? ''}
-                      onChange={(e) =>
-                        handleSetChange(exercise.id, set.id, {
-                          distance: e.target.value === '' ? null : Number(e.target.value)
-                        })
-                      }
-                      className="w-full p-2 border rounded"
-                      placeholder="0"
-                    />
-                    <button
-                      onClick={async () => {
+                      type="text"
+                      value={exercise.name}
+                      onChange={async (e) => {
+                        const newName = e.target.value;
+                        const newIconName = findIconByName(exercise.icon_name || 'dumbbell').name;
+                        
                         const { error } = await supabase
-                          .from('sets')
-                          .delete()
-                          .eq('id', set.id);
+                          .from('exercises')
+                          .update({ 
+                            name: newName,
+                            icon_name: newIconName
+                          })
+                          .eq('id', exercise.id);
 
                         if (!error) {
                           setWorkout(prev => ({
                             ...prev,
                             exercises: prev.exercises.map(ex =>
                               ex.id === exercise.id
-                                ? {
-                                    ...ex,
-                                    sets: ex.sets.filter(s => s.id !== set.id)
-                                  }
+                                ? { ...ex, name: newName, icon_name: newIconName }
                                 : ex
                             )
                           }));
                         }
                       }}
-                      className="text-red-600 hover:text-red-800"
-                    >
-                      <TrashIcon className="h-5 w-5" />
-                    </button>
+                      className="text-lg font-semibold flex-1"
+                    />
                   </div>
-                ))}
+                  <button
+                    onClick={() => deleteExercise(exercise.id)}
+                    className="text-red-600 hover:text-red-800 p-1"
+                    title="Delete exercise"
+                  >
+                    <TrashIcon className="h-5 w-5" />
+                  </button>
+                </div>
+
+                <textarea
+                  value={exercise.notes || ''}
+                  onChange={(e) => handleExerciseNotesChange(exercise.id, e.target.value)}
+                  placeholder="Add notes for this exercise..."
+                  className="w-full p-2 border rounded-lg text-sm mb-4 resize-none h-20"
+                />
+
+                <ExerciseStats exercise={exercise} />
+
+                <div className="mt-4 space-y-4">
+                  <div className="grid grid-cols-[auto,1fr,1fr,1fr,auto] gap-4 px-2">
+                    <div className="w-5"></div>
+                    <div className="text-sm font-medium text-gray-600">Reps</div>
+                    <div className="text-sm font-medium text-gray-600">Weight (lbs)</div>
+                    <div className="text-sm font-medium text-gray-600">Distance (mi)</div>
+                    <div className="w-5"></div>
+                  </div>
+
+                  {exercise.sets?.map((set) => (
+                    <div key={set.id} className="grid grid-cols-[auto,1fr,1fr,1fr,auto] gap-4 items-center">
+                      <input
+                        type="checkbox"
+                        checked={set.completed}
+                        onChange={(e) =>
+                          handleSetChange(exercise.id, set.id, {
+                            completed: e.target.checked
+                          })
+                        }
+                        className="h-5 w-5"
+                      />
+                      <input
+                        type="number"
+                        step="any"
+                        value={set.reps ?? ''}
+                        onChange={(e) =>
+                          handleSetChange(exercise.id, set.id, {
+                            reps: e.target.value === '' ? null : Number(e.target.value)
+                          })
+                        }
+                        className="w-full p-2 border rounded"
+                        placeholder="0"
+                      />
+                      <input
+                        type="number"
+                        step="any"
+                        value={set.weight ?? ''}
+                        onChange={(e) =>
+                          handleSetChange(exercise.id, set.id, {
+                            weight: e.target.value === '' ? null : Number(e.target.value)
+                          })
+                        }
+                        className="w-full p-2 border rounded"
+                        placeholder="0"
+                      />
+                      <input
+                        type="number"
+                        step="any"
+                        value={set.distance ?? ''}
+                        onChange={(e) =>
+                          handleSetChange(exercise.id, set.id, {
+                            distance: e.target.value === '' ? null : Number(e.target.value)
+                          })
+                        }
+                        className="w-full p-2 border rounded"
+                        placeholder="0"
+                      />
+                      <button
+                        onClick={async () => {
+                          const { error } = await supabase
+                            .from('sets')
+                            .delete()
+                            .eq('id', set.id);
+
+                          if (!error) {
+                            setWorkout(prev => ({
+                              ...prev,
+                              exercises: prev.exercises.map(ex =>
+                                ex.id === exercise.id
+                                  ? {
+                                      ...ex,
+                                      sets: ex.sets.filter(s => s.id !== set.id)
+                                    }
+                                  : ex
+                              )
+                            }));
+                          }
+                        }}
+                        className="text-red-600 hover:text-red-800"
+                      >
+                        <TrashIcon className="h-5 w-5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                <button
+                  onClick={() => addSet(exercise.id)}
+                  className="mt-4 text-blue-600 text-sm hover:text-blue-800"
+                >
+                  Add Set
+                </button>
               </div>
-
-              <button
-                onClick={() => addSet(exercise.id)}
-                className="mt-4 text-blue-600 text-sm hover:text-blue-800"
-              >
-                Add Set
-              </button>
-            </div>
-          );
-        })}
-      </div>
-
-      {!loading && workout.exercises.length === 0 && (
-        <div className="bg-gray-50 rounded-lg p-8 text-center">
-          <p className="text-gray-600 mb-2">No exercises added yet</p>
-          <p className="text-sm text-gray-500">Click the plus button to add your first exercise</p>
+            );
+          })}
         </div>
-      )}
 
-      <div className="fixed bottom-16 left-0 right-0 flex justify-between items-center px-4 pb-4">
-        <button
-          onClick={saveWorkout}
-          disabled={loading}
-          className="bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-        >
-          <DocumentCheckIcon className="h-5 w-5" />
-          Save
-        </button>
-        <button
-          onClick={() => setShowExerciseSelector(true)}
-          disabled={loading}
-          className="bg-blue-600 text-white p-3 rounded-full shadow-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-          title="Add exercise"
-        >
-          <PlusIcon className="h-6 w-6" />
-        </button>
+        {!loading && workout.exercises.length === 0 && (
+          <div className="bg-gray-50 rounded-lg p-8 text-center">
+            <p className="text-gray-600 mb-2">No exercises added yet</p>
+            <p className="text-sm text-gray-500">Click the plus button to add your first exercise</p>
+          </div>
+        )}
+
+        <div className="fixed bottom-16 left-0 right-0 flex justify-between items-center px-4 pb-4">
+          <button
+            onClick={saveWorkout}
+            disabled={loading}
+            className="bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          >
+            <DocumentCheckIcon className="h-5 w-5" />
+            Save
+          </button>
+          <button
+            onClick={() => setShowExerciseSelector(true)}
+            disabled={loading}
+            className="bg-blue-600 text-white p-3 rounded-full shadow-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Add exercise"
+          >
+            <PlusIcon className="h-6 w-6" />
+          </button>
+        </div>
+
+        {showExerciseSelector && (
+          <ExerciseSelector
+            onSelect={handleExerciseSelect}
+            onClose={() => setShowExerciseSelector(false)}
+          />
+        )}
       </div>
-
-      {showExerciseSelector && (
-        <ExerciseSelector
-          onSelect={handleExerciseSelect}
-          onClose={() => setShowExerciseSelector(false)}
-        />
-      )}
     </div>
   );
 }

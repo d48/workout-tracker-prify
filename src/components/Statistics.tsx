@@ -28,6 +28,7 @@ import {
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
 import { Database } from '../types/supabase';
+import prifyLogo from '../images/prify-logo.svg';
 
 ChartJS.register(
   CategoryScale,
@@ -257,81 +258,93 @@ export default function Statistics() {
 
   return (
     <div className="p-4 pb-24">
-      <h1 className="text-2xl font-bold mb-6">Statistics</h1>
-
-      <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
-        {(['today', 'week', 'month', 'quarter', 'year'] as const).map((p) => (
-          <button
-            key={p}
-            onClick={() => setPeriod(p)}
-            className={`px-4 py-2 rounded-full whitespace-nowrap ${
-              period === p ? 'bg-blue-600 text-white' : 'bg-white text-gray-600'
-            }`}
-          >
-            {p.charAt(0).toUpperCase() + p.slice(1)}
-          </button>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-3 gap-4 mb-8">
-        <div className="bg-white rounded-lg shadow p-4 text-center">
-          <div className="text-2xl font-bold text-blue-600">
-            {stats.totalWorkouts}
-          </div>
-          <div className="text-xs sm:text-sm text-gray-600">Workouts</div>
-        </div>
-        <div className="bg-white rounded-lg shadow p-4 text-center">
-          <div className="text-2xl font-bold text-green-600">
-            {stats.totalExercises}
-          </div>
-          <div className="text-xs sm:text-sm text-gray-600">Exercises</div>
-        </div>
-        <div className="bg-white rounded-lg shadow p-4 text-center">
-          <div className="text-2xl font-bold text-purple-600">
-            {stats.completionRate}%
-          </div>
-          <div className="text-xs sm:text-sm text-gray-600">Completion</div>
+      <div className="fixed top-0 left-0 right-0 bg-white shadow-md z-10">
+        <div className="max-w-lg mx-auto px-4 py-4">
+          <img 
+            src={prifyLogo}
+            alt="PRIFY Workout Tracker" 
+            className="h-8 mx-auto"
+          />
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow p-4 mb-8">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-semibold">Exercise Performance</h2>
-          <div className="flex gap-2">
+      <div className="pt-24">
+        <h1 className="text-2xl font-bold mb-6">Statistics</h1>
+
+        <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
+          {(['today', 'week', 'month', 'quarter', 'year'] as const).map((p) => (
             <button
-              onClick={() => setSelectedMetric('reps')}
-              className={`px-3 py-1 rounded-full text-sm ${
-                selectedMetric === 'reps' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'
+              key={p}
+              onClick={() => setPeriod(p)}
+              className={`px-4 py-2 rounded-full whitespace-nowrap ${
+                period === p ? 'bg-blue-600 text-white' : 'bg-white text-gray-600'
               }`}
             >
-              Reps
+              {p.charAt(0).toUpperCase() + p.slice(1)}
             </button>
-            <button
-              onClick={() => setSelectedMetric('weight')}
-              className={`px-3 py-1 rounded-full text-sm ${
-                selectedMetric === 'weight' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'
-              }`}
-            >
-              Weight
-            </button>
-            <button
-              onClick={() => setSelectedMetric('distance')}
-              className={`px-3 py-1 rounded-full text-sm ${
-                selectedMetric === 'distance' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'
-              }`}
-            >
-              Distance
-            </button>
-          </div>
+          ))}
         </div>
-        <div className="h-[400px] sm:h-[500px]">
-          {exerciseData.length > 0 ? (
-            <Line data={chartData} options={chartOptions} />
-          ) : (
-            <div className="h-full flex items-center justify-center text-gray-500">
-              No data available for selected metric
+
+        <div className="grid grid-cols-3 gap-4 mb-8">
+          <div className="bg-white rounded-lg shadow p-4 text-center">
+            <div className="text-2xl font-bold text-blue-600">
+              {stats.totalWorkouts}
             </div>
-          )}
+            <div className="text-xs sm:text-sm text-gray-600">Workouts</div>
+          </div>
+          <div className="bg-white rounded-lg shadow p-4 text-center">
+            <div className="text-2xl font-bold text-green-600">
+              {stats.totalExercises}
+            </div>
+            <div className="text-xs sm:text-sm text-gray-600">Exercises</div>
+          </div>
+          <div className="bg-white rounded-lg shadow p-4 text-center">
+            <div className="text-2xl font-bold text-purple-600">
+              {stats.completionRate}%
+            </div>
+            <div className="text-xs sm:text-sm text-gray-600">Completion</div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow p-4 mb-8">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-semibold">Exercise Performance</h2>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setSelectedMetric('reps')}
+                className={`px-3 py-1 rounded-full text-sm ${
+                  selectedMetric === 'reps' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'
+                }`}
+              >
+                Reps
+              </button>
+              <button
+                onClick={() => setSelectedMetric('weight')}
+                className={`px-3 py-1 rounded-full text-sm ${
+                  selectedMetric === 'weight' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'
+                }`}
+              >
+                Weight
+              </button>
+              <button
+                onClick={() => setSelectedMetric('distance')}
+                className={`px-3 py-1 rounded-full text-sm ${
+                  selectedMetric === 'distance' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'
+                }`}
+              >
+                Distance
+              </button>
+            </div>
+          </div>
+          <div className="h-[400px] sm:h-[500px]">
+            {exerciseData.length > 0 ? (
+              <Line data={chartData} options={chartOptions} />
+            ) : (
+              <div className="h-full flex items-center justify-center text-gray-500">
+                No data available for selected metric
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

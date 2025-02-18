@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format, startOfToday, startOfWeek, startOfMonth, endOfToday, endOfWeek, endOfMonth } from 'date-fns';
-import { PlusIcon, TrashIcon, ShareIcon, ClipboardDocumentIcon, DocumentDuplicateIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, TrashIcon, ShareIcon, DocumentDuplicateIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import { supabase } from '../lib/supabase';
 import html2canvas from 'html2canvas';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { findIconByName } from '../lib/exercise-icons';
 import { Database } from '../types/supabase';
+import prifyLogo from '../images/prify-logo.svg';
 
 type Workout = Database['public']['Tables']['workouts']['Row'] & {
   exercises: Array<{
@@ -280,10 +281,14 @@ export default function WorkoutList() {
   const WelcomeMessage = () => (
     <div className="bg-white rounded-lg shadow-lg p-8 text-center">
       <div className="mb-6">
-        <ClipboardDocumentIcon className="h-16 w-16 text-blue-600 mx-auto mb-4" />
-        <h2 className="text-2xl font-bold text-gray-800 mb-2">Welcome to Workout Tracker!</h2>
+        <img 
+          src={prifyLogo}
+          alt="PRIFY Workout Tracker" 
+          className="h-16 mx-auto mb-4"
+        />
+        <h2 className="text-2xl font-bold text-gray-800 mb-2">Welcome to PRIFY!</h2>
         <p className="text-gray-600 mb-4">
-          Start your fitness journey by creating your first workout. Track your exercises, sets, and progress all in one place.
+          Start tracking your workouts and breaking personal records (PRs). Whether you're lifting heavier, running faster, or pushing harder, PRIFY helps you achieve and celebrate every milestone in your fitness journey.
         </p>
       </div>
       <button
@@ -348,13 +353,20 @@ export default function WorkoutList() {
   if (loading) {
     return (
       <div className="p-4">
-        <div className="fixed top-0 left-0 right-0 bg-gray-100 z-10">
+        <div className="fixed top-0 left-0 right-0 bg-white shadow-md z-10">
           <div className="max-w-lg mx-auto px-4 py-4">
             <div className="flex justify-between items-center">
-              <div className="flex items-center gap-2">
-                <ClipboardDocumentIcon className="h-8 w-8 text-blue-600" />
-                <h1 className="text-2xl font-bold">My Workouts</h1>
-              </div>
+              <img 
+                src={prifyLogo}
+                alt="PRIFY Workout Tracker" 
+                className="h-8"
+              />
+              <button
+                onClick={() => navigate('/workout/new')}
+                className="bg-blue-600 text-white p-2 rounded-full hover:bg-blue-700"
+              >
+                <PlusIcon className="h-6 w-6" />
+              </button>
             </div>
           </div>
         </div>
@@ -365,13 +377,14 @@ export default function WorkoutList() {
 
   return (
     <div className="p-4">
-      <div className="fixed top-0 left-0 right-0 bg-gray-100 z-10">
+      <div className="fixed top-0 left-0 right-0 bg-white shadow-md z-10">
         <div className="max-w-lg mx-auto px-4 py-4">
           <div className="flex justify-between items-center">
-            <div className="flex items-center gap-2">
-              <ClipboardDocumentIcon className="h-8 w-8 text-blue-600" />
-              <h1 className="text-2xl font-bold">My Workouts</h1>
-            </div>
+            <img 
+              src={prifyLogo}
+              alt="PRIFY Workout Tracker" 
+              className="h-8"
+            />
             <button
               onClick={() => navigate('/workout/new')}
               className="bg-blue-600 text-white p-2 rounded-full hover:bg-blue-700"
@@ -379,29 +392,29 @@ export default function WorkoutList() {
               <PlusIcon className="h-6 w-6" />
             </button>
           </div>
-
-          <div className="flex gap-2 mt-4 overflow-x-auto">
-            {['all', 'today', 'week', 'month'].map((period) => (
-              <button
-                key={period}
-                onClick={() => {
-                  setFilter(period);
-                  setPage(1); // Reset to first page when changing filter
-                }}
-                className={`px-4 py-2 rounded-full whitespace-nowrap ${
-                  filter === period
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-white text-gray-600'
-                }`}
-              >
-                {period === 'all' ? 'All Time' : period.charAt(0).toUpperCase() + period.slice(1)}
-              </button>
-            ))}
-          </div>
         </div>
       </div>
 
-      <div className="pt-32">
+      <div className="pt-24">
+        <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
+          {['all', 'today', 'week', 'month'].map((period) => (
+            <button
+              key={period}
+              onClick={() => {
+                setFilter(period);
+                setPage(1);
+              }}
+              className={`px-4 py-2 rounded-full whitespace-nowrap ${
+                filter === period
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-600'
+              }`}
+            >
+              {period === 'all' ? 'All Time' : period.charAt(0).toUpperCase() + period.slice(1)}
+            </button>
+          ))}
+        </div>
+
         {workouts.length === 0 ? (
           <WelcomeMessage />
         ) : (
