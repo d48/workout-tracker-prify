@@ -289,7 +289,7 @@ export default function WorkoutList() {
 
       const blob = await new Promise<Blob>(resolve => canvas.toBlob(blob => resolve(blob!), 'image/png'));
       
-      // Try Web Share API first
+      // Try Web Share API first (mainly for mobile)
       if (navigator.share) {
         try {
           const file = new File([blob], `${workout.name}-${format(new Date(workout.date), 'yyyy-MM-dd')}.png`, { type: 'image/png' });
@@ -304,15 +304,26 @@ export default function WorkoutList() {
         }
       }
 
-      // Try clipboard API
+      // For desktop browsers: Try to copy to clipboard
       try {
-        await navigator.clipboard.write([
-          new ClipboardItem({
-            'image/png': blob
-          })
-        ]);
-        alert('Workout summary copied to clipboard!');
+        // First try the modern Clipboard API with ClipboardItem
+        if (navigator.clipboard && window.ClipboardItem) {
+          await navigator.clipboard.write([
+            new ClipboardItem({
+              'image/png': blob
+            })
+          ]);
+          alert('Workout summary copied to clipboard!');
+          return;
+        }
+
+        // Fallback for browsers that support basic clipboard write
+        const dataUrl = canvas.toDataURL('image/png');
+        await navigator.clipboard.writeText(dataUrl);
+        alert('Workout summary copied to clipboard as data URL!');
       } catch (err) {
+        console.error('Clipboard error:', err);
+        
         // Final fallback: create a download link
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -322,7 +333,7 @@ export default function WorkoutList() {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        alert('Workout summary downloaded! (Your browser doesn\'t support sharing)');
+        alert('Workout summary downloaded! (Your browser doesn\'t support clipboard access)');
       }
     } catch (error) {
       console.error('Error sharing workout:', error);
