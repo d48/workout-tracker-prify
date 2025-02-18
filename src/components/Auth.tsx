@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { AuthError } from '@supabase/supabase-js';
 import { useTheme } from '../lib/ThemeContext';
 import ThemeToggle from './ThemeToggle';
+import { Link } from 'react-router-dom';
 
 export default function Auth() {
   const [loading, setLoading] = useState(false);
@@ -293,6 +294,16 @@ export default function Auth() {
             </svg>
             Sign in with Google
           </button>
+        </div>
+
+        <div className="mt-8 text-center text-sm text-gray-500 dark:text-gray-400 space-x-4">
+          <Link to="/privacy-policy" className="hover:text-gray-900 dark:hover:text-white">
+            Privacy Policy
+          </Link>
+          <span>•</span>
+          <Link to="/terms-of-service" className="hover:text-gray-900 dark:hover:text-white">
+            Terms of Service
+          </Link>
         </div>
       </div>
     </div>

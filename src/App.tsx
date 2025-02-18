@@ -7,6 +7,8 @@ import WorkoutDetail from './components/WorkoutDetail';
 import Statistics from './components/Statistics';
 import Navigation from './components/Navigation';
 import Auth from './components/Auth';
+import PrivacyPolicy from './components/PrivacyPolicy';
+import TermsOfService from './components/TermsOfService';
 import { ThemeProvider } from './lib/ThemeContext';
 
 function App() {
@@ -29,9 +31,15 @@ function App() {
   if (!session) {
     return (
       <ThemeProvider>
-        <div className="dark:bg-gray-900 transition-colors">
-          <Auth />
-        </div>
+        <Router>
+          <div className="dark:bg-gray-900 transition-colors">
+            <Routes>
+              <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+              <Route path="/terms-of-service" element={<TermsOfService />} />
+              <Route path="*" element={<Auth />} />
+            </Routes>
+          </div>
+        </Router>
       </ThemeProvider>
     );
   }
@@ -45,6 +53,8 @@ function App() {
               <Route path="/" element={<WorkoutList />} />
               <Route path="/workout/:id" element={<WorkoutDetail />} />
               <Route path="/statistics" element={<Statistics />} />
+              <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+              <Route path="/terms-of-service" element={<TermsOfService />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </div>
