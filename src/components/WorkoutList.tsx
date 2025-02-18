@@ -8,6 +8,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { findIconByName } from '../lib/exercise-icons';
 import { Database } from '../types/supabase';
 import prifyLogo from '../images/prify-logo.svg';
+import ThemeToggle from './ThemeToggle';
 
 type Workout = Database['public']['Tables']['workouts']['Row'] & {
   exercises: Array<{
@@ -311,10 +312,10 @@ export default function WorkoutList() {
   }
 
   const WelcomeMessage = () => (
-    <div className="bg-white rounded-lg shadow-lg p-8 text-center">
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 text-center">
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-gray-800 mb-2">Welcome to PRIFY!</h2>
-        <p className="text-gray-600 mb-4">
+        <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">Welcome to PRIFY!</h2>
+        <p className="text-gray-600 dark:text-gray-300 mb-4">
           Start tracking your workouts and breaking personal records (PRs). Whether you're lifting heavier, running faster, or pushing harder, PRIFY helps you achieve and celebrate every milestone in your fitness journey.
         </p>
       </div>
@@ -323,7 +324,7 @@ export default function WorkoutList() {
         className="bg-[#dbf111] text-black px-6 py-3 rounded-lg hover:bg-[#c5d60f] inline-flex items-center gap-2"
       >
         <PlusIcon className="h-5 w-5" />
-        Create a Workout
+        Add Workout
       </button>
     </div>
   );
@@ -345,7 +346,7 @@ export default function WorkoutList() {
         <button
           onClick={() => handlePageChange(page - 1)}
           disabled={page === 1}
-          className="p-2 rounded-full disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+          className="p-2 rounded-full disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-700"
         >
           <ChevronLeftIcon className="h-5 w-5" />
         </button>
@@ -358,7 +359,7 @@ export default function WorkoutList() {
               className={`w-8 h-8 rounded-full ${
                 pageNum === page
                   ? 'bg-[#dbf111] text-black'
-                  : 'hover:bg-gray-100'
+                  : 'hover:bg-gray-100 dark:hover:bg-gray-700'
               }`}
             >
               {pageNum}
@@ -369,7 +370,7 @@ export default function WorkoutList() {
         <button
           onClick={() => handlePageChange(page + 1)}
           disabled={page === totalPages}
-          className="p-2 rounded-full disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+          className="p-2 rounded-full disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-700"
         >
           <ChevronRightIcon className="h-5 w-5" />
         </button>
@@ -380,7 +381,7 @@ export default function WorkoutList() {
   if (loading) {
     return (
       <div className="p-4">
-        <div className="fixed top-0 left-0 right-0 bg-white shadow-md z-10">
+        <div className="fixed top-0 left-0 right-0 bg-white dark:bg-gray-800 shadow-md z-10">
           <div className="max-w-lg mx-auto px-4 py-4">
             <div className="flex justify-between items-center">
               <Link to="/">
@@ -390,23 +391,28 @@ export default function WorkoutList() {
                   className="h-16 cursor-pointer"
                 />
               </Link>
-              <button
-                onClick={() => navigate('/workout/new')}
-                className="bg-[#dbf111] text-black p-2 rounded-full hover:bg-[#c5d60f]"
-              >
-                <PlusIcon className="h-6 w-6" />
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => navigate('/workout/new')}
+                  className="bg-[#dbf111] text-black p-2 rounded-full hover:bg-[#c5d60f] flex items-center gap-1"
+                  title="Add new workout"
+                >
+                  <PlusIcon className="h-6 w-6" />
+                  <span className="hidden sm:inline">Add Workout</span>
+                </button>
+                <ThemeToggle />
+              </div>
             </div>
           </div>
         </div>
-        <div className="pt-24 text-center text-gray-500">Loading workouts...</div>
+        <div className="pt-24 text-center text-gray-500 dark:text-gray-400">Loading workouts...</div>
       </div>
     );
   }
 
   return (
     <div className="p-4">
-      <div className="fixed top-0 left-0 right-0 bg-white shadow-md z-10">
+      <div className="fixed top-0 left-0 right-0 bg-white dark:bg-gray-800 shadow-md z-10">
         <div className="max-w-lg mx-auto px-4 py-4">
           <div className="flex justify-between items-center">
             <Link to="/">
@@ -416,12 +422,17 @@ export default function WorkoutList() {
                 className="h-16 cursor-pointer"
               />
             </Link>
-            <button
-              onClick={() => navigate('/workout/new')}
-              className="bg-[#dbf111] text-black p-2 rounded-full hover:bg-[#c5d60f]"
-            >
-              <PlusIcon className="h-6 w-6" />
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => navigate('/workout/new')}
+                className="bg-[#dbf111] text-black p-2 rounded-full hover:bg-[#c5d60f] flex items-center gap-1"
+                title="Add new workout"
+              >
+                <PlusIcon className="h-6 w-6" />
+                <span className="hidden sm:inline">Add Workout</span>
+              </button>
+              <ThemeToggle />
+            </div>
           </div>
         </div>
       </div>
@@ -438,7 +449,7 @@ export default function WorkoutList() {
               className={`px-4 py-2 rounded-full whitespace-nowrap ${
                 filter === period
                   ? 'bg-[#dbf111] text-black'
-                  : 'bg-gray-100 text-gray-600'
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
               }`}
             >
               {period === 'all' ? 'All Time' : period.charAt(0).toUpperCase() + period.slice(1)}
@@ -456,18 +467,18 @@ export default function WorkoutList() {
                   key={workout.id}
                   ref={el => workoutRefs.current[workout.id] = el}
                   onClick={() => navigate(`/workout/${workout.id}`)}
-                  className="bg-white rounded-lg shadow p-4 cursor-pointer hover:bg-gray-50 transition-colors"
+                  className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                 >
                   <div className="flex justify-between items-start mb-6">
                     <div className="flex-1">
-                      <h2 className="text-lg font-semibold hover:text-[#dbf111] transition-colors">
+                      <h2 className="text-lg font-semibold text-gray-900 dark:text-white hover:text-[#dbf111] dark:hover:text-[#dbf111] transition-colors">
                         {workout.name}
                       </h2>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
                         {format(new Date(workout.date), 'MMM d, yyyy')}
                       </p>
                       {workout.notes && (
-                        <p className="text-sm text-gray-600 mt-2 whitespace-pre-wrap">
+                        <p className="text-sm text-gray-600 dark:text-gray-300 mt-2 whitespace-pre-wrap">
                           {workout.notes}
                         </p>
                       )}
@@ -475,14 +486,14 @@ export default function WorkoutList() {
                     <div className="flex gap-3 action-buttons ml-4">
                       <button
                         onClick={(e) => duplicateWorkout(workout, e)}
-                        className="text-black hover:text-gray-700"
+                        className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
                         title="Duplicate workout"
                       >
                         <DocumentDuplicateIcon className="h-5 w-5" />
                       </button>
                       <button
                         onClick={(e) => shareWorkout(workout, e)}
-                        className="text-black hover:text-gray-700"
+                        className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
                         title="Share workout"
                       >
                         <ShareIcon className="h-5 w-5" />
@@ -492,7 +503,7 @@ export default function WorkoutList() {
                           e.stopPropagation();
                           deleteWorkout(workout.id);
                         }}
-                        className="text-black hover:text-gray-700"
+                        className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
                         title="Delete workout"
                       >
                         <TrashIcon className="h-5 w-5" />
@@ -509,14 +520,14 @@ export default function WorkoutList() {
                         return (
                           <div
                             key={exercise.id}
-                            className="flex items-center gap-2 text-sm bg-gray-50 p-2 rounded"
+                            className="flex items-center gap-2 text-sm bg-gray-50 dark:bg-gray-700 p-2 rounded"
                           >
                             <FontAwesomeIcon 
                               icon={iconInfo.iconDef} 
-                              className="h-4 w-4 text-gray-600" 
+                              className="h-4 w-4 text-gray-600 dark:text-gray-300" 
                             />
-                            <span className="font-medium">{exercise.name}</span>
-                            <div className="flex gap-3 ml-auto text-xs text-gray-600">
+                            <span className="font-medium text-gray-900 dark:text-white">{exercise.name}</span>
+                            <div className="flex gap-3 ml-auto text-xs text-gray-600 dark:text-gray-300">
                               {stats.totalReps && (
                                 <span>{stats.totalReps} reps</span>
                               )}

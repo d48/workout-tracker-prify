@@ -7,6 +7,7 @@ import WorkoutDetail from './components/WorkoutDetail';
 import Statistics from './components/Statistics';
 import Navigation from './components/Navigation';
 import Auth from './components/Auth';
+import { ThemeProvider } from './lib/ThemeContext';
 
 function App() {
   const [session, setSession] = useState<Session | null>(null);
@@ -26,23 +27,31 @@ function App() {
   }, []);
 
   if (!session) {
-    return <Auth />;
+    return (
+      <ThemeProvider>
+        <div className="dark:bg-gray-900 transition-colors">
+          <Auth />
+        </div>
+      </ThemeProvider>
+    );
   }
 
   return (
-    <Router>
-      <div className="min-h-screen bg-gray-100">
-        <div className="max-w-lg mx-auto pb-20">
-          <Routes>
-            <Route path="/" element={<WorkoutList />} />
-            <Route path="/workout/:id" element={<WorkoutDetail />} />
-            <Route path="/statistics" element={<Statistics />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+    <ThemeProvider>
+      <Router>
+        <div className="min-h-screen bg-gray-100 dark:bg-gray-900 transition-colors">
+          <div className="max-w-lg mx-auto pb-20">
+            <Routes>
+              <Route path="/" element={<WorkoutList />} />
+              <Route path="/workout/:id" element={<WorkoutDetail />} />
+              <Route path="/statistics" element={<Statistics />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </div>
+          <Navigation />
         </div>
-        <Navigation />
-      </div>
-    </Router>
+      </Router>
+    </ThemeProvider>
   );
 }
 

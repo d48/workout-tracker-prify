@@ -30,6 +30,8 @@ import { Line } from 'react-chartjs-2';
 import { Database } from '../types/supabase';
 import prifyLogo from '../images/prify-logo.svg';
 import { Link } from 'react-router-dom';
+import { useTheme } from '../lib/ThemeContext';
+import ThemeToggle from './ThemeToggle';
 
 ChartJS.register(
   CategoryScale,
@@ -66,6 +68,7 @@ type MetricType = 'reps' | 'weight' | 'distance';
 type PeriodType = 'today' | 'week' | 'month' | 'quarter' | 'year';
 
 export default function Statistics() {
+  const { theme } = useTheme();
   const [stats, setStats] = useState({
     totalWorkouts: 0,
     totalExercises: 0,
@@ -216,7 +219,8 @@ export default function Statistics() {
           padding: 10,
           font: {
             size: 11
-          }
+          },
+          color: theme === 'dark' ? '#fff' : '#000'
         }
       },
       title: {
@@ -226,7 +230,8 @@ export default function Statistics() {
               'Total Distance per Exercise (mi)',
         font: {
           size: 14
-        }
+        },
+        color: theme === 'dark' ? '#fff' : '#000'
       },
     },
     scales: {
@@ -236,12 +241,17 @@ export default function Statistics() {
           display: true,
           text: selectedMetric === 'reps' ? 'Reps' :
                 selectedMetric === 'weight' ? 'Weight (lbs)' :
-                'Distance (mi)'
+                'Distance (mi)',
+          color: theme === 'dark' ? '#fff' : '#000'
         },
         ticks: {
           font: {
             size: 11
-          }
+          },
+          color: theme === 'dark' ? '#fff' : '#000'
+        },
+        grid: {
+          color: theme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
         }
       },
       x: {
@@ -251,7 +261,11 @@ export default function Statistics() {
             size: 11
           },
           maxRotation: 45,
-          minRotation: 45
+          minRotation: 45,
+          color: theme === 'dark' ? '#fff' : '#000'
+        },
+        grid: {
+          color: theme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
         }
       }
     }
@@ -259,20 +273,23 @@ export default function Statistics() {
 
   return (
     <div className="p-4 pb-24">
-      <div className="fixed top-0 left-0 right-0 bg-white shadow-md z-10">
+      <div className="fixed top-0 left-0 right-0 bg-white dark:bg-gray-800 shadow-md z-10">
         <div className="max-w-lg mx-auto px-4 py-4">
-          <Link to="/">
-            <img 
-              src={prifyLogo}
-              alt="PRIFY Workout Tracker" 
-              className="h-16 mx-auto cursor-pointer"
-            />
-          </Link>
+          <div className="flex justify-between items-center">
+            <Link to="/">
+              <img 
+                src={prifyLogo}
+                alt="PRIFY Workout Tracker" 
+                className="h-16 cursor-pointer"
+              />
+            </Link>
+            <ThemeToggle />
+          </div>
         </div>
       </div>
 
       <div className="pt-24">
-        <h1 className="text-2xl font-bold mb-6">Statistics</h1>
+        <h1 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white">Statistics</h1>
 
         <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
           {(['today', 'week', 'month', 'quarter', 'year'] as const).map((p) => (
@@ -282,7 +299,7 @@ export default function Statistics() {
               className={`px-4 py-2 rounded-full whitespace-nowrap ${
                 period === p 
                   ? 'bg-[#dbf111] text-black' 
-                  : 'bg-white text-gray-600'
+                  : 'bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300'
               }`}
             >
               {p.charAt(0).toUpperCase() + p.slice(1)}
@@ -291,36 +308,36 @@ export default function Statistics() {
         </div>
 
         <div className="grid grid-cols-3 gap-4 mb-8">
-          <div className="bg-white rounded-lg shadow p-4 text-center">
-            <div className="text-2xl font-bold text-blue-600">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 text-center">
+            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
               {stats.totalWorkouts}
             </div>
-            <div className="text-xs sm:text-sm text-gray-600">Workouts</div>
+            <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">Workouts</div>
           </div>
-          <div className="bg-white rounded-lg shadow p-4 text-center">
-            <div className="text-2xl font-bold text-green-600">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 text-center">
+            <div className="text-2xl font-bold text-green-600 dark:text-green-400">
               {stats.totalExercises}
             </div>
-            <div className="text-xs sm:text-sm text-gray-600">Exercises</div>
+            <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">Exercises</div>
           </div>
-          <div className="bg-white rounded-lg shadow p-4 text-center">
-            <div className="text-2xl font-bold text-purple-600">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 text-center">
+            <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
               {stats.completionRate}%
             </div>
-            <div className="text-xs sm:text-sm text-gray-600">Completion</div>
+            <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">Completion</div>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-4 mb-8">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 mb-8">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold">Exercise Performance</h2>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Exercise Performance</h2>
             <div className="flex gap-2">
               <button
                 onClick={() => setSelectedMetric('reps')}
                 className={`px-3 py-1 rounded-full text-sm ${
                   selectedMetric === 'reps' 
                     ? 'bg-[#dbf111] text-black' 
-                    : 'bg-gray-100 text-gray-600'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
                 }`}
               >
                 Reps
@@ -330,7 +347,7 @@ export default function Statistics() {
                 className={`px-3 py-1 rounded-full text-sm ${
                   selectedMetric === 'weight' 
                     ? 'bg-[#dbf111] text-black' 
-                    : 'bg-gray-100 text-gray-600'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
                 }`}
               >
                 Weight
@@ -340,7 +357,7 @@ export default function Statistics() {
                 className={`px-3 py-1 rounded-full text-sm ${
                   selectedMetric === 'distance' 
                     ? 'bg-[#dbf111] text-black' 
-                    : 'bg-gray-100 text-gray-600'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
                 }`}
               >
                 Distance
@@ -351,7 +368,7 @@ export default function Statistics() {
             {exerciseData.length > 0 ? (
               <Line data={chartData} options={chartOptions} />
             ) : (
-              <div className="h-full flex items-center justify-center text-gray-500">
+              <div className="h-full flex items-center justify-center text-gray-500 dark:text-gray-400">
                 No data available for selected metric
               </div>
             )}

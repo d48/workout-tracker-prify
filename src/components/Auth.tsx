@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { AuthError } from '@supabase/supabase-js';
 import prifyLogo from '../images/prify-logo.svg';
+import ThemeToggle from './ThemeToggle';
 
 export default function Auth() {
   const [loading, setLoading] = useState(false);
@@ -21,7 +22,6 @@ export default function Auth() {
       }
     });
 
-    // Check for existing session
     checkSession();
 
     return () => {
@@ -155,7 +155,6 @@ export default function Auth() {
         throw new Error('No OAuth URL returned');
       }
 
-      // The redirect will happen automatically
       console.log('Redirecting to Google OAuth...');
     } catch (err) {
       const authError = err as AuthError;
@@ -169,37 +168,40 @@ export default function Auth() {
 
   if (authInProgress) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
-        <div className="bg-white w-full max-w-md rounded-2xl shadow-xl p-8 text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <h2 className="text-xl font-semibold text-gray-700 mb-2">Authenticating...</h2>
-          <p className="text-gray-500">Please wait while we sign you in.</p>
+      <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900 p-4">
+        <div className="bg-white dark:bg-gray-800 w-full max-w-md rounded-2xl shadow-xl p-8 text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 dark:border-blue-400 mx-auto mb-4"></div>
+          <h2 className="text-xl font-semibold text-gray-700 dark:text-gray-200 mb-2">Authenticating...</h2>
+          <p className="text-gray-500 dark:text-gray-400">Please wait while we sign you in.</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
-      <div className="bg-white w-full max-w-md rounded-2xl shadow-xl p-8">
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900 p-4">
+      <div className="fixed top-4 right-4">
+        <ThemeToggle />
+      </div>
+      <div className="bg-white dark:bg-gray-800 w-full max-w-md rounded-2xl shadow-xl p-8">
         <div className="text-center mb-8">
           <img 
             src={prifyLogo}
             alt="PRIFY Workout Tracker" 
             className="h-32 mx-auto mb-4"
           />
-          <p className="text-gray-600">Track your workouts and break your personal records (PRs)</p>
+          <p className="text-gray-600 dark:text-gray-300">Track your workouts and break your personal records (PRs)</p>
         </div>
         
         {error && (
-          <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded">
+          <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 text-red-700 dark:text-red-400 rounded">
             <p className="text-sm">{error}</p>
           </div>
         )}
         
         <form className="space-y-6" onSubmit={handleSignIn}>
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Email address
             </label>
             <input
@@ -207,14 +209,14 @@ export default function Auth() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111] transition-colors"
+              className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111] transition-colors"
               placeholder="you@example.com"
               required
               disabled={loading}
             />
           </div>
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Password
             </label>
             <input
@@ -222,7 +224,7 @@ export default function Auth() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111] transition-colors"
+              className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111] transition-colors"
               placeholder="••••••••"
               required
               disabled={loading}
@@ -248,7 +250,7 @@ export default function Auth() {
               type="button"
               onClick={handleSignUp}
               disabled={loading}
-              className="w-full bg-gray-100 text-gray-700 py-3 px-4 rounded-lg font-medium hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 py-3 px-4 rounded-lg font-medium hover:bg-gray-200 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Create account
             </button>
@@ -258,17 +260,17 @@ export default function Auth() {
         <div className="mt-8">
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-200" />
+              <div className="w-full border-t border-gray-200 dark:border-gray-700" />
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-white text-gray-500">Or continue with</span>
+              <span className="px-4 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">Or continue with</span>
             </div>
           </div>
 
           <button
             onClick={handleGoogleSignIn}
             disabled={loading}
-            className="mt-6 w-full flex items-center justify-center gap-3 px-4 py-3 rounded-lg shadow-sm bg-white text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#dbf111] focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed border border-gray-300"
+            className="mt-6 w-full flex items-center justify-center gap-3 px-4 py-3 rounded-lg shadow-sm bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-[#dbf111] focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed border border-gray-300 dark:border-gray-600"
           >
             <svg className="h-5 w-5" viewBox="0 0 24 24">
               <path

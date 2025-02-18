@@ -10,6 +10,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { WorkoutFormData, Exercise, ExerciseTemplate, Set } from '../types/workout';
 import { Database } from '../types/supabase';
 import prifyLogo from '../images/prify-logo.svg';
+import ThemeToggle from './ThemeToggle';
 
 type WorkoutResponse = Database['public']['Tables']['workouts']['Row'] & {
   exercises: (Database['public']['Tables']['exercises']['Row'] & {
@@ -369,8 +370,30 @@ export default function WorkoutDetail() {
   if (loading) {
     return (
       <div className="p-4">
-        <div className="fixed top-0 left-0 right-0 bg-white shadow-md z-10">
+        <div className="fixed top-0 left-0 right-0 bg-white dark:bg-gray-800 shadow-md z-10">
           <div className="max-w-lg mx-auto px-4 py-4">
+            <div className="flex justify-between items-center">
+              <Link to="/">
+                <img 
+                  src={prifyLogo}
+                  alt="PRIFY Workout Tracker" 
+                  className="h-16 mx-auto cursor-pointer"
+                />
+              </Link>
+              <ThemeToggle />
+            </div>
+          </div>
+        </div>
+        <div className="pt-24 text-center text-gray-500 dark:text-gray-400">Loading workout...</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-4 pb-32">
+      <div className="fixed top-0 left-0 right-0 bg-white dark:bg-gray-800 shadow-md z-10">
+        <div className="max-w-lg mx-auto px-4 py-4">
+          <div className="flex justify-between items-center">
             <Link to="/">
               <img 
                 src={prifyLogo}
@@ -378,39 +401,23 @@ export default function WorkoutDetail() {
                 className="h-16 mx-auto cursor-pointer"
               />
             </Link>
+            <ThemeToggle />
           </div>
-        </div>
-        <div className="pt-24 text-center text-gray-500">Loading workout...</div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="p-4 pb-32">
-      <div className="fixed top-0 left-0 right-0 bg-white shadow-md z-10">
-        <div className="max-w-lg mx-auto px-4 py-4">
-          <Link to="/">
-            <img 
-              src={prifyLogo}
-              alt="PRIFY Workout Tracker" 
-              className="h-16 mx-auto cursor-pointer"
-            />
-          </Link>
         </div>
       </div>
 
       <div className="pt-24">
         {error && (
-          <div className="mb-4 p-4 bg-red-50 border-l-4 border-red-500 flex items-center gap-2">
+          <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 flex items-center gap-2">
             <ExclamationCircleIcon className="h-5 w-5 text-red-500" />
-            <p className="text-red-700">{error}</p>
+            <p className="text-red-700 dark:text-red-400">{error}</p>
             <button 
               onClick={() => {
                 setRetryCount(0);
                 setError('');
                 fetchWorkout();
               }}
-              className="ml-auto text-sm text-red-600 hover:text-red-800"
+              className="ml-auto text-sm text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300"
             >
               Retry
             </button>
@@ -424,12 +431,12 @@ export default function WorkoutDetail() {
               type="text"
               value={workout.name}
               onChange={(e) => setWorkout(prev => ({ ...prev, name: e.target.value }))}
-              className="text-2xl font-bold w-full bg-transparent pr-8 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#dbf111] rounded-lg transition-colors p-2"
+              className="text-2xl font-bold w-full bg-transparent dark:text-white pr-8 focus:bg-white dark:focus:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-[#dbf111] rounded-lg transition-colors p-2"
               placeholder="Workout Name"
             />
             <button
               onClick={() => titleInputRef.current?.focus()}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
             >
               <PencilIcon className="h-5 w-5" />
             </button>
@@ -438,13 +445,13 @@ export default function WorkoutDetail() {
             type="datetime-local"
             value={workout.date}
             onChange={handleDateChange}
-            className="block w-full focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111] rounded-lg"
+            className="block w-full bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111] rounded-lg"
           />
           <textarea
             value={workout.notes || ''}
             onChange={(e) => setWorkout(prev => ({ ...prev, notes: e.target.value }))}
             placeholder="Add workout notes..."
-            className="w-full p-3 border rounded-lg resize-none h-24 focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111]"
+            className="w-full p-3 border dark:border-gray-600 rounded-lg resize-none h-24 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111]"
           />
         </div>
 
@@ -453,12 +460,12 @@ export default function WorkoutDetail() {
             const iconInfo = findIconByName(exercise.icon_name || 'dumbbell');
 
             return (
-              <div key={exercise.id} className="bg-white rounded-lg shadow p-4">
+              <div key={exercise.id} className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
                 <div className="flex justify-between items-center mb-4">
                   <div className="flex items-center gap-2 flex-1">
                     <FontAwesomeIcon 
                       icon={iconInfo.iconDef} 
-                      className="h-6 w-6 text-gray-600" 
+                      className="h-6 w-6 text-gray-600 dark:text-gray-300" 
                     />
                     <input
                       type="text"
@@ -472,8 +479,7 @@ export default function WorkoutDetail() {
                           .update({ 
                             name: newName,
                             icon_name: newIconName
-                          })
-                          .eq('id', exercise.id);
+                          }) .eq('id', exercise.id);
 
                         if (!error) {
                           setWorkout(prev => ({
@@ -486,12 +492,12 @@ export default function WorkoutDetail() {
                           }));
                         }
                       }}
-                      className="text-lg font-semibold flex-1 focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111] rounded-lg"
+                      className="text-lg font-semibold flex-1 bg-transparent dark:text-white focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111] rounded-lg"
                     />
                   </div>
                   <button
                     onClick={() => deleteExercise(exercise.id)}
-                    className="text-black hover:text-gray-700 p-1"
+                    className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white p-1"
                     title="Delete exercise"
                   >
                     <TrashIcon className="h-5 w-5" />
@@ -502,7 +508,7 @@ export default function WorkoutDetail() {
                   value={exercise.notes || ''}
                   onChange={(e) => handleExerciseNotesChange(exercise.id, e.target.value)}
                   placeholder="Add notes for this exercise..."
-                  className="w-full p-2 border rounded-lg text-sm mb-4 resize-none h-20 focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111]"
+                  className="w-full p-2 border dark:border-gray-600 rounded-lg text-sm mb-4 resize-none h-20 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111]"
                 />
 
                 <ExerciseStats exercise={exercise} />
@@ -510,9 +516,9 @@ export default function WorkoutDetail() {
                 <div className="mt-4 space-y-4">
                   <div className="grid grid-cols-[auto,1fr,1fr,1fr,auto] gap-4 px-2">
                     <div className="w-5"></div>
-                    <div className="text-sm font-medium text-gray-600">Reps</div>
-                    <div className="text-sm font-medium text-gray-600">Weight (lbs)</div>
-                    <div className="text-sm font-medium text-gray-600">Distance (mi)</div>
+                    <div className="text-sm font-medium text-gray-600 dark:text-gray-300">Reps</div>
+                    <div className="text-sm font-medium text-gray-600 dark:text-gray-300">Weight (lbs)</div>
+                    <div className="text-sm font-medium text-gray-600 dark:text-gray-300">Distance (mi)</div>
                     <div className="w-5"></div>
                   </div>
 
@@ -537,7 +543,7 @@ export default function WorkoutDetail() {
                             reps: e.target.value === '' ? null : Number(e.target.value)
                           })
                         }
-                        className="w-full p-2 border rounded focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111]"
+                        className="w-full p-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111]"
                         placeholder="0"
                       />
                       <input
@@ -549,7 +555,7 @@ export default function WorkoutDetail() {
                             weight: e.target.value === '' ? null : Number(e.target.value)
                           })
                         }
-                        className="w-full p-2 border rounded focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111]"
+                        className="w-full p-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111]"
                         placeholder="0"
                       />
                       <input
@@ -561,7 +567,7 @@ export default function WorkoutDetail() {
                             distance: e.target.value === '' ? null : Number(e.target.value)
                           })
                         }
-                        className="w-full p-2 border rounded focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111]"
+                        className="w-full p-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111]"
                         placeholder="0"
                       />
                       <button
@@ -585,7 +591,7 @@ export default function WorkoutDetail() {
                             }));
                           }
                         }}
-                        className="text-black hover:text-gray-700"
+                        className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
                       >
                         <TrashIcon className="h-5 w-5" />
                       </button>
@@ -595,7 +601,7 @@ export default function WorkoutDetail() {
 
                 <button
                   onClick={() => addSet(exercise.id)}
-                  className="mt-4 text-black hover:text-gray-700 text-sm underline"
+                  className="mt-4 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white text-sm underline"
                 >
                   Add Set
                 </button>
@@ -605,9 +611,9 @@ export default function WorkoutDetail() {
         </div>
 
         {!loading && workout.exercises.length === 0 && (
-          <div className="bg-gray-50 rounded-lg p-8 text-center">
-            <p className="text-gray-600 mb-2">No exercises added yet</p>
-            <p className="text-sm text-gray-500">Click the plus button to add your first exercise</p>
+          <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-8 text-center">
+            <p className="text-gray-600 dark:text-gray-300 mb-2">No exercises added yet</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Click the plus button to add your first exercise</p>
           </div>
         )}
 
@@ -623,10 +629,11 @@ export default function WorkoutDetail() {
           <button
             onClick={() => setShowExerciseSelector(true)}
             disabled={loading}
-            className="bg-[#dbf111] text-black p-3 rounded-full shadow-lg hover:bg-[#c5d60f] disabled:opacity-50 disabled:cursor-not-allowed"
+            className="bg-[#dbf111] text-black px-6 py-3 rounded-lg shadow-lg hover:bg-[#c5d60f] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             title="Add exercise"
           >
             <PlusIcon className="h-6 w-6" />
+            Add Exercise
           </button>
         </div>
 

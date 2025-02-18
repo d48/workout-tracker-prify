@@ -10,7 +10,7 @@
 @tailwind utilities;
 
 body {
-  @apply bg-gray-100;
+  @apply bg-gray-100 dark:bg-gray-900 transition-colors;
 }
 
 input[type="number"] {
@@ -26,15 +26,16 @@ input::-webkit-inner-spin-button {
 /* Custom checkbox styling for cross-browser compatibility */
 @layer utilities {
   .checkbox-custom {
-    @apply h-5 w-5 rounded border-gray-300;
+    @apply h-5 w-5 rounded border border-gray-300 dark:border-gray-600;
     @apply text-[#dbf111] focus:ring-[#dbf111];
     @apply checked:bg-[#dbf111] checked:border-[#dbf111];
     @apply checked:hover:bg-[#dbf111] checked:focus:bg-[#dbf111];
+    @apply dark:bg-gray-700 dark:checked:bg-[#dbf111];
+    @apply cursor-pointer;
+    @apply bg-white dark:bg-gray-700;
     appearance: none;
     -webkit-appearance: none;
-    background-color: #fff;
     background-origin: border-box;
-    border: 1px solid #d1d5db;
     padding: 0;
     print-color-adjust: exact;
     display: inline-block;
@@ -42,6 +43,7 @@ input::-webkit-inner-spin-button {
     background-position: center;
     background-repeat: no-repeat;
     background-size: contain;
+    position: relative;
   }
 
   .checkbox-custom:checked {
@@ -59,4 +61,21 @@ input::-webkit-inner-spin-button {
     outline-offset: 2px;
     box-shadow: 0 0 0 2px #fff, 0 0 0 4px #dbf111;
   }
+
+  .dark .checkbox-custom:focus {
+    box-shadow: 0 0 0 2px #1f2937, 0 0 0 4px #dbf111;
+  }
+}
+
+/* Dark mode transitions */
+.transition-colors {
+  transition-property: background-color, border-color, color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+/* Dark mode input focus ring color */
+.dark .focus\:ring-[#dbf111]:focus {
+  --tw-ring-color: #dbf111;
+  --tw-ring-opacity: 0.5;
 }
