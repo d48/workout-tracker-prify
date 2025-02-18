@@ -9,6 +9,7 @@ import { findIconByName } from '../lib/exercise-icons';
 import { Database } from '../types/supabase';
 import prifyLogo from '../images/prify-logo.svg';
 import ThemeToggle from './ThemeToggle';
+import { useTheme } from '../lib/ThemeContext';
 
 type Workout = Database['public']['Tables']['workouts']['Row'] & {
   exercises: Array<{
@@ -35,6 +36,7 @@ export default function WorkoutList() {
   const [totalWorkouts, setTotalWorkouts] = useState(0);
   const navigate = useNavigate();
   const workoutRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const { logo } = useTheme();
 
   useEffect(() => {
     fetchWorkouts();
@@ -386,7 +388,7 @@ export default function WorkoutList() {
             <div className="flex justify-between items-center">
               <Link to="/">
                 <img 
-                  src={prifyLogo}
+                  src={logo}
                   alt="PRIFY Workout Tracker" 
                   className="h-16 cursor-pointer"
                 />
@@ -417,7 +419,7 @@ export default function WorkoutList() {
           <div className="flex justify-between items-center">
             <Link to="/">
               <img 
-                src={prifyLogo}
+                src={logo}
                 alt="PRIFY Workout Tracker" 
                 className="h-16 cursor-pointer"
               />

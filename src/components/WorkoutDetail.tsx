@@ -9,7 +9,7 @@ import { findIconByName } from '../lib/exercise-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { WorkoutFormData, Exercise, ExerciseTemplate, Set } from '../types/workout';
 import { Database } from '../types/supabase';
-import prifyLogo from '../images/prify-logo.svg';
+import { useTheme } from '../lib/ThemeContext';
 import ThemeToggle from './ThemeToggle';
 
 type WorkoutResponse = Database['public']['Tables']['workouts']['Row'] & {
@@ -32,6 +32,7 @@ function debounce<T extends (...args: any[]) => any>(
 export default function WorkoutDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { logo } = useTheme();
   const [workout, setWorkout] = useState<WorkoutFormData>({
     name: 'New Workout',
     date: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
@@ -375,9 +376,9 @@ export default function WorkoutDetail() {
             <div className="flex justify-between items-center">
               <Link to="/">
                 <img 
-                  src={prifyLogo}
+                  src={logo}
                   alt="PRIFY Workout Tracker" 
-                  className="h-16 mx-auto cursor-pointer"
+                  className="h-16 cursor-pointer"
                 />
               </Link>
               <ThemeToggle />
@@ -396,9 +397,9 @@ export default function WorkoutDetail() {
           <div className="flex justify-between items-center">
             <Link to="/">
               <img 
-                src={prifyLogo}
+                src={logo}
                 alt="PRIFY Workout Tracker" 
-                className="h-16 mx-auto cursor-pointer"
+                className="h-16 cursor-pointer"
               />
             </Link>
             <ThemeToggle />

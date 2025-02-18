@@ -28,7 +28,6 @@ import {
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
 import { Database } from '../types/supabase';
-import prifyLogo from '../images/prify-logo.svg';
 import { Link } from 'react-router-dom';
 import { useTheme } from '../lib/ThemeContext';
 import ThemeToggle from './ThemeToggle';
@@ -68,7 +67,7 @@ type MetricType = 'reps' | 'weight' | 'distance';
 type PeriodType = 'today' | 'week' | 'month' | 'quarter' | 'year';
 
 export default function Statistics() {
-  const { theme } = useTheme();
+  const { theme, logo } = useTheme();
   const [stats, setStats] = useState({
     totalWorkouts: 0,
     totalExercises: 0,
@@ -278,7 +277,7 @@ export default function Statistics() {
           <div className="flex justify-between items-center">
             <Link to="/">
               <img 
-                src={prifyLogo}
+                src={logo}
                 alt="PRIFY Workout Tracker" 
                 className="h-16 cursor-pointer"
               />
