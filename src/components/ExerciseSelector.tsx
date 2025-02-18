@@ -273,7 +273,7 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
               placeholder="Search icons..."
               value={iconSearch}
               onChange={(e) => setIconSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border rounded"
+              className="w-full pl-10 pr-4 py-2 border rounded focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111]"
             />
           </div>
         </div>
@@ -289,8 +289,8 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
               }}
               className={`p-4 rounded-lg border flex flex-col items-center gap-2 ${
                 selectedIcon.name === icon.name
-                  ? 'border-blue-500 bg-blue-50'
-                  : 'border-gray-200 hover:border-blue-300'
+                  ? 'border-[#dbf111] bg-[#dbf111]/10'
+                  : 'border-gray-200 hover:border-[#dbf111]'
               }`}
             >
               <FontAwesomeIcon icon={icon.iconDef} className="h-6 w-6" />
@@ -320,7 +320,7 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
               placeholder="Search exercises..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border rounded"
+              className="w-full pl-10 pr-4 py-2 border rounded focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111]"
             />
           </div>
 
@@ -329,7 +329,7 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
               <label className="text-sm font-medium text-gray-700">Categories</label>
               <button
                 onClick={() => setShowNewCategoryForm(true)}
-                className="text-blue-600 hover:text-blue-800 text-sm flex items-center gap-1"
+                className="text-black hover:text-gray-700 text-sm flex items-center gap-1 underline"
               >
                 <PlusIcon className="h-4 w-4" />
                 Add Category
@@ -339,7 +339,7 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
               <button
                 onClick={() => setSelectedCategory(null)}
                 className={`px-3 py-1 rounded-full whitespace-nowrap ${
-                  !selectedCategory ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'
+                  !selectedCategory ? 'bg-[#dbf111] text-black' : 'bg-gray-100 text-gray-600'
                 }`}
               >
                 All
@@ -350,7 +350,7 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
                   onClick={() => setSelectedCategory(category.id)}
                   className={`px-3 py-1 rounded-full whitespace-nowrap ${
                     category.id === selectedCategory
-                      ? 'bg-blue-600 text-white'
+                      ? 'bg-[#dbf111] text-black'
                       : 'bg-gray-100 text-gray-600'
                   }`}
                 >
@@ -371,12 +371,12 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
                   value={newCategoryName}
                   onChange={(e) => setNewCategoryName(e.target.value)}
                   placeholder="Enter category name..."
-                  className="flex-1 px-3 py-1 border rounded"
+                  className="flex-1 px-3 py-1 border rounded focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111]"
                   autoFocus
                 />
                 <button
                   type="submit"
-                  className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
+                  className="px-3 py-1 bg-[#dbf111] text-black rounded hover:bg-[#c5d60f]"
                 >
                   Add
                 </button>
@@ -429,14 +429,14 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
                     <div className="flex gap-2">
                       <button
                         onClick={() => handleEditExercise(exercise)}
-                        className="p-1 text-blue-600 hover:text-blue-800"
+                        className="p-1 text-black hover:text-gray-700"
                         title="Edit exercise"
                       >
                         <PencilIcon className="h-4 w-4" />
                       </button>
                       <button
                         onClick={() => handleDeleteExercise(exercise)}
-                        className="p-1 text-red-600 hover:text-red-800"
+                        className="p-1 text-black hover:text-gray-700"
                         title="Delete exercise"
                       >
                         <TrashIcon className="h-4 w-4" />
@@ -456,7 +456,7 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
                   placeholder="New exercise name..."
                   value={newExercise.name}
                   onChange={(e) => setNewExercise({ ...newExercise, name: e.target.value })}
-                  className="flex-1 p-2 border rounded"
+                  className="flex-1 p-2 border rounded focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111]"
                 />
                 <button
                   type="button"
@@ -470,7 +470,7 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
               <select
                 value={newExercise.category_id}
                 onChange={(e) => setNewExercise(prev => ({ ...prev, category_id: e.target.value }))}
-                className="w-full p-2 border rounded"
+                className="w-full p-2 border rounded focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111]"
               >
                 <option value="">Select category...</option>
                 {categories.map(category => (
@@ -488,7 +488,7 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
                     value={newExercise.default_sets ?? ''}
                     onChange={(e) => handleNumberChange('default_sets', e.target.value)}
                     min="1"
-                    className="w-full p-2 border rounded"
+                    className="w-full p-2 border rounded focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111]"
                     placeholder="Optional"
                   />
                 </div>
@@ -499,7 +499,7 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
                     value={newExercise.default_reps ?? ''}
                     onChange={(e) => handleNumberChange('default_reps', e.target.value)}
                     min="1"
-                    className="w-full p-2 border rounded"
+                    className="w-full p-2 border rounded focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111]"
                     placeholder="Optional"
                   />
                 </div>
@@ -511,7 +511,7 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
                     onChange={(e) => handleNumberChange('default_distance', e.target.value)}
                     min="0"
                     step="any"
-                    className="w-full p-2 border rounded"
+                    className="w-full p-2 border rounded focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111]"
                     placeholder="Optional"
                   />
                 </div>
@@ -519,7 +519,7 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
 
               <button
                 type="submit"
-                className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 flex items-center justify-center gap-2"
+                className="w-full bg-[#dbf111] text-black py-2 rounded hover:bg-[#c5d60f] flex items-center justify-center gap-2"
               >
                 {editingExercise ? (
                   <>

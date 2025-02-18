@@ -29,6 +29,7 @@ import {
 import { Line } from 'react-chartjs-2';
 import { Database } from '../types/supabase';
 import prifyLogo from '../images/prify-logo.svg';
+import { Link } from 'react-router-dom';
 
 ChartJS.register(
   CategoryScale,
@@ -260,11 +261,13 @@ export default function Statistics() {
     <div className="p-4 pb-24">
       <div className="fixed top-0 left-0 right-0 bg-white shadow-md z-10">
         <div className="max-w-lg mx-auto px-4 py-4">
-          <img 
-            src={prifyLogo}
-            alt="PRIFY Workout Tracker" 
-            className="h-16 mx-auto"
-          />
+          <Link to="/">
+            <img 
+              src={prifyLogo}
+              alt="PRIFY Workout Tracker" 
+              className="h-16 mx-auto cursor-pointer"
+            />
+          </Link>
         </div>
       </div>
 
@@ -277,7 +280,9 @@ export default function Statistics() {
               key={p}
               onClick={() => setPeriod(p)}
               className={`px-4 py-2 rounded-full whitespace-nowrap ${
-                period === p ? 'bg-blue-600 text-white' : 'bg-white text-gray-600'
+                period === p 
+                  ? 'bg-[#dbf111] text-black' 
+                  : 'bg-white text-gray-600'
               }`}
             >
               {p.charAt(0).toUpperCase() + p.slice(1)}
@@ -313,7 +318,9 @@ export default function Statistics() {
               <button
                 onClick={() => setSelectedMetric('reps')}
                 className={`px-3 py-1 rounded-full text-sm ${
-                  selectedMetric === 'reps' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'
+                  selectedMetric === 'reps' 
+                    ? 'bg-[#dbf111] text-black' 
+                    : 'bg-gray-100 text-gray-600'
                 }`}
               >
                 Reps
@@ -321,7 +328,9 @@ export default function Statistics() {
               <button
                 onClick={() => setSelectedMetric('weight')}
                 className={`px-3 py-1 rounded-full text-sm ${
-                  selectedMetric === 'weight' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'
+                  selectedMetric === 'weight' 
+                    ? 'bg-[#dbf111] text-black' 
+                    : 'bg-gray-100 text-gray-600'
                 }`}
               >
                 Weight
@@ -329,7 +338,9 @@ export default function Statistics() {
               <button
                 onClick={() => setSelectedMetric('distance')}
                 className={`px-3 py-1 rounded-full text-sm ${
-                  selectedMetric === 'distance' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'
+                  selectedMetric === 'distance' 
+                    ? 'bg-[#dbf111] text-black' 
+                    : 'bg-gray-100 text-gray-600'
                 }`}
               >
                 Distance

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { format, startOfToday, startOfWeek, startOfMonth, endOfToday, endOfWeek, endOfMonth } from 'date-fns';
 import { PlusIcon, TrashIcon, ShareIcon, DocumentDuplicateIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import { supabase } from '../lib/supabase';
@@ -288,7 +288,7 @@ export default function WorkoutList() {
       </div>
       <button
         onClick={() => navigate('/workout/new')}
-        className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 inline-flex items-center gap-2"
+        className="bg-[#dbf111] text-black px-6 py-3 rounded-lg hover:bg-[#c5d60f] inline-flex items-center gap-2"
       >
         <PlusIcon className="h-5 w-5" />
         Create a Workout
@@ -325,7 +325,7 @@ export default function WorkoutList() {
               onClick={() => handlePageChange(pageNum)}
               className={`w-8 h-8 rounded-full ${
                 pageNum === page
-                  ? 'bg-blue-600 text-white'
+                  ? 'bg-[#dbf111] text-black'
                   : 'hover:bg-gray-100'
               }`}
             >
@@ -351,14 +351,16 @@ export default function WorkoutList() {
         <div className="fixed top-0 left-0 right-0 bg-white shadow-md z-10">
           <div className="max-w-lg mx-auto px-4 py-4">
             <div className="flex justify-between items-center">
-              <img 
-                src={prifyLogo}
-                alt="PRIFY Workout Tracker" 
-                className="h-16"
-              />
+              <Link to="/">
+                <img 
+                  src={prifyLogo}
+                  alt="PRIFY Workout Tracker" 
+                  className="h-16 cursor-pointer"
+                />
+              </Link>
               <button
                 onClick={() => navigate('/workout/new')}
-                className="bg-blue-600 text-white p-2 rounded-full hover:bg-blue-700"
+                className="bg-[#dbf111] text-black p-2 rounded-full hover:bg-[#c5d60f]"
               >
                 <PlusIcon className="h-6 w-6" />
               </button>
@@ -375,14 +377,16 @@ export default function WorkoutList() {
       <div className="fixed top-0 left-0 right-0 bg-white shadow-md z-10">
         <div className="max-w-lg mx-auto px-4 py-4">
           <div className="flex justify-between items-center">
-            <img 
-              src={prifyLogo}
-              alt="PRIFY Workout Tracker" 
-              className="h-16"
-            />
+            <Link to="/">
+              <img 
+                src={prifyLogo}
+                alt="PRIFY Workout Tracker" 
+                className="h-16 cursor-pointer"
+              />
+            </Link>
             <button
               onClick={() => navigate('/workout/new')}
-              className="bg-blue-600 text-white p-2 rounded-full hover:bg-blue-700"
+              className="bg-[#dbf111] text-black p-2 rounded-full hover:bg-[#c5d60f]"
             >
               <PlusIcon className="h-6 w-6" />
             </button>
@@ -401,7 +405,7 @@ export default function WorkoutList() {
               }}
               className={`px-4 py-2 rounded-full whitespace-nowrap ${
                 filter === period
-                  ? 'bg-blue-600 text-white'
+                  ? 'bg-[#dbf111] text-black'
                   : 'bg-gray-100 text-gray-600'
               }`}
             >
@@ -424,7 +428,7 @@ export default function WorkoutList() {
                 >
                   <div className="flex justify-between items-start mb-6">
                     <div className="flex-1">
-                      <h2 className="text-lg font-semibold hover:text-blue-600 transition-colors">
+                      <h2 className="text-lg font-semibold hover:text-[#dbf111] transition-colors">
                         {workout.name}
                       </h2>
                       <p className="text-sm text-gray-500">
@@ -439,14 +443,14 @@ export default function WorkoutList() {
                     <div className="flex gap-3 action-buttons ml-4">
                       <button
                         onClick={(e) => duplicateWorkout(workout, e)}
-                        className="text-blue-600 hover:text-blue-800"
+                        className="text-black hover:text-gray-700"
                         title="Duplicate workout"
                       >
                         <DocumentDuplicateIcon className="h-5 w-5" />
                       </button>
                       <button
                         onClick={(e) => shareWorkout(workout, e)}
-                        className="text-blue-600 hover:text-blue-800"
+                        className="text-black hover:text-gray-700"
                         title="Share workout"
                       >
                         <ShareIcon className="h-5 w-5" />
@@ -456,7 +460,7 @@ export default function WorkoutList() {
                           e.stopPropagation();
                           deleteWorkout(workout.id);
                         }}
-                        className="text-red-600 hover:text-red-800"
+                        className="text-black hover:text-gray-700"
                         title="Delete workout"
                       >
                         <TrashIcon className="h-5 w-5" />

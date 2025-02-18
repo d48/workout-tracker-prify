@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { PlusIcon, TrashIcon, ExclamationCircleIcon, DocumentCheckIcon, PencilIcon } from '@heroicons/react/24/outline';
 import { supabase } from '../lib/supabase';
 import ExerciseSelector from './ExerciseSelector';
@@ -371,11 +371,13 @@ export default function WorkoutDetail() {
       <div className="p-4">
         <div className="fixed top-0 left-0 right-0 bg-white shadow-md z-10">
           <div className="max-w-lg mx-auto px-4 py-4">
-            <img 
-              src={prifyLogo}
-              alt="PRIFY Workout Tracker" 
-              className="h-16 mx-auto"
-            />
+            <Link to="/">
+              <img 
+                src={prifyLogo}
+                alt="PRIFY Workout Tracker" 
+                className="h-16 mx-auto cursor-pointer"
+              />
+            </Link>
           </div>
         </div>
         <div className="pt-24 text-center text-gray-500">Loading workout...</div>
@@ -387,11 +389,13 @@ export default function WorkoutDetail() {
     <div className="p-4 pb-32">
       <div className="fixed top-0 left-0 right-0 bg-white shadow-md z-10">
         <div className="max-w-lg mx-auto px-4 py-4">
-          <img 
-            src={prifyLogo}
-            alt="PRIFY Workout Tracker" 
-            className="h-16 mx-auto"
-          />
+          <Link to="/">
+            <img 
+              src={prifyLogo}
+              alt="PRIFY Workout Tracker" 
+              className="h-16 mx-auto cursor-pointer"
+            />
+          </Link>
         </div>
       </div>
 
@@ -420,7 +424,7 @@ export default function WorkoutDetail() {
               type="text"
               value={workout.name}
               onChange={(e) => setWorkout(prev => ({ ...prev, name: e.target.value }))}
-              className="text-2xl font-bold w-full bg-transparent pr-8 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-lg transition-colors p-2"
+              className="text-2xl font-bold w-full bg-transparent pr-8 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#dbf111] rounded-lg transition-colors p-2"
               placeholder="Workout Name"
             />
             <button
@@ -434,13 +438,13 @@ export default function WorkoutDetail() {
             type="datetime-local"
             value={workout.date}
             onChange={handleDateChange}
-            className="block w-full"
+            className="block w-full focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111] rounded-lg"
           />
           <textarea
             value={workout.notes || ''}
             onChange={(e) => setWorkout(prev => ({ ...prev, notes: e.target.value }))}
             placeholder="Add workout notes..."
-            className="w-full p-3 border rounded-lg resize-none h-24"
+            className="w-full p-3 border rounded-lg resize-none h-24 focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111]"
           />
         </div>
 
@@ -482,12 +486,12 @@ export default function WorkoutDetail() {
                           }));
                         }
                       }}
-                      className="text-lg font-semibold flex-1"
+                      className="text-lg font-semibold flex-1 focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111] rounded-lg"
                     />
                   </div>
                   <button
                     onClick={() => deleteExercise(exercise.id)}
-                    className="text-red-600 hover:text-red-800 p-1"
+                    className="text-black hover:text-gray-700 p-1"
                     title="Delete exercise"
                   >
                     <TrashIcon className="h-5 w-5" />
@@ -498,7 +502,7 @@ export default function WorkoutDetail() {
                   value={exercise.notes || ''}
                   onChange={(e) => handleExerciseNotesChange(exercise.id, e.target.value)}
                   placeholder="Add notes for this exercise..."
-                  className="w-full p-2 border rounded-lg text-sm mb-4 resize-none h-20"
+                  className="w-full p-2 border rounded-lg text-sm mb-4 resize-none h-20 focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111]"
                 />
 
                 <ExerciseStats exercise={exercise} />
@@ -522,7 +526,7 @@ export default function WorkoutDetail() {
                             completed: e.target.checked
                           })
                         }
-                        className="h-5 w-5"
+                        className="h-5 w-5 rounded border-gray-300 text-[#dbf111] focus:ring-[#dbf111]"
                       />
                       <input
                         type="number"
@@ -533,7 +537,7 @@ export default function WorkoutDetail() {
                             reps: e.target.value === '' ? null : Number(e.target.value)
                           })
                         }
-                        className="w-full p-2 border rounded"
+                        className="w-full p-2 border rounded focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111]"
                         placeholder="0"
                       />
                       <input
@@ -545,7 +549,7 @@ export default function WorkoutDetail() {
                             weight: e.target.value === '' ? null : Number(e.target.value)
                           })
                         }
-                        className="w-full p-2 border rounded"
+                        className="w-full p-2 border rounded focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111]"
                         placeholder="0"
                       />
                       <input
@@ -557,7 +561,7 @@ export default function WorkoutDetail() {
                             distance: e.target.value === '' ? null : Number(e.target.value)
                           })
                         }
-                        className="w-full p-2 border rounded"
+                        className="w-full p-2 border rounded focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111]"
                         placeholder="0"
                       />
                       <button
@@ -581,7 +585,7 @@ export default function WorkoutDetail() {
                             }));
                           }
                         }}
-                        className="text-red-600 hover:text-red-800"
+                        className="text-black hover:text-gray-700"
                       >
                         <TrashIcon className="h-5 w-5" />
                       </button>
@@ -591,7 +595,7 @@ export default function WorkoutDetail() {
 
                 <button
                   onClick={() => addSet(exercise.id)}
-                  className="mt-4 text-blue-600 text-sm hover:text-blue-800"
+                  className="mt-4 text-black hover:text-gray-700 text-sm underline"
                 >
                   Add Set
                 </button>
@@ -607,11 +611,11 @@ export default function WorkoutDetail() {
           </div>
         )}
 
-        <div className="fixed bottom-16 left-0 right-0 flex justify-between items-center px-4 pb-4">
+        <div className="fixed bottom-20 left-0 right-0 flex justify-between items-center px-4 pb-4 max-w-lg mx-auto">
           <button
             onClick={saveWorkout}
             disabled={loading}
-            className="bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            className="bg-[#dbf111] text-black px-6 py-3 rounded-lg shadow-lg hover:bg-[#c5d60f] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
             <DocumentCheckIcon className="h-5 w-5" />
             Save
@@ -619,7 +623,7 @@ export default function WorkoutDetail() {
           <button
             onClick={() => setShowExerciseSelector(true)}
             disabled={loading}
-            className="bg-blue-600 text-white p-3 rounded-full shadow-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="bg-[#dbf111] text-black p-3 rounded-full shadow-lg hover:bg-[#c5d60f] disabled:opacity-50 disabled:cursor-not-allowed"
             title="Add exercise"
           >
             <PlusIcon className="h-6 w-6" />
