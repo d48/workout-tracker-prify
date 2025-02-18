@@ -289,6 +289,22 @@ export default function WorkoutList() {
 
       const blob = await new Promise<Blob>(resolve => canvas.toBlob(blob => resolve(blob!), 'image/png'));
       
+      // Try Web Share API first
+      if (navigator.share) {
+        try {
+          const file = new File([blob], `${workout.name}-${format(new Date(workout.date), 'yyyy-MM-dd')}.png`, { type: 'image/png' });
+          await navigator.share({
+            title: 'Workout Summary',
+            text: `Check out my workout: ${workout.name}`,
+            files: [file]
+          });
+          return;
+        } catch (err) {
+          console.log('Web Share API failed, falling back to clipboard', err);
+        }
+      }
+
+      // Try clipboard API
       try {
         await navigator.clipboard.write([
           new ClipboardItem({
@@ -297,6 +313,7 @@ export default function WorkoutList() {
         ]);
         alert('Workout summary copied to clipboard!');
       } catch (err) {
+        // Final fallback: create a download link
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -305,7 +322,7 @@ export default function WorkoutList() {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        alert('Workout summary downloaded! (Your browser doesn\'t support direct clipboard access)');
+        alert('Workout summary downloaded! (Your browser doesn\'t support sharing)');
       }
     } catch (error) {
       console.error('Error sharing workout:', error);
