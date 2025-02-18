@@ -186,7 +186,7 @@ export default function Auth() {
           <img 
             src={prifyLogo}
             alt="PRIFY Workout Tracker" 
-            className="h-12 mx-auto mb-4"
+            className="h-24 mx-auto mb-4"
           />
           <p className="text-gray-600">Track your workouts and break your personal records (PRs)</p>
         </div>
