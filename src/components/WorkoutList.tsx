@@ -414,7 +414,7 @@ export default function WorkoutList() {
                   onClick={() => navigate(`/workout/${workout.id}`)}
                   className="bg-white rounded-lg shadow p-4 cursor-pointer hover:bg-gray-50 transition-colors"
                 >
-                  <div className="flex justify-between items-start mb-3">
+                  <div className="flex justify-between items-start mb-6">
                     <div className="flex-1">
                       <h2 className="text-lg font-semibold hover:text-blue-600 transition-colors">
                         {workout.name}
@@ -428,7 +428,7 @@ export default function WorkoutList() {
                         </p>
                       )}
                     </div>
-                    <div className="flex gap-2 action-buttons ml-4">
+                    <div className="flex gap-3 action-buttons ml-4">
                       <button
                         onClick={(e) => duplicateWorkout(workout, e)}
                         className="text-blue-600 hover:text-blue-800"
