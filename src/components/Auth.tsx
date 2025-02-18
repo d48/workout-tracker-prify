@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { AuthError } from '@supabase/supabase-js';
-import prifyLogo from '../images/prify-logo.svg';
+import { useTheme } from '../lib/ThemeContext';
 import ThemeToggle from './ThemeToggle';
 
 export default function Auth() {
@@ -10,6 +10,7 @@ export default function Auth() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [authInProgress, setAuthInProgress] = useState(false);
+  const { logo } = useTheme();
 
   useEffect(() => {
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -186,7 +187,7 @@ export default function Auth() {
       <div className="bg-white dark:bg-gray-800 w-full max-w-md rounded-2xl shadow-xl p-8">
         <div className="text-center mb-8">
           <img 
-            src={prifyLogo}
+            src={logo}
             alt="PRIFY Workout Tracker" 
             className="h-32 mx-auto mb-4"
           />
