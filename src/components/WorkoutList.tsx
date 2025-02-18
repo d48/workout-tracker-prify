@@ -217,40 +217,72 @@ export default function WorkoutList() {
     if (!workoutCard) return;
 
     try {
+      // Create a temporary image element to convert SVG to PNG
+      const tempImg = document.createElement('img');
+      await new Promise((resolve, reject) => {
+        tempImg.onload = resolve;
+        tempImg.onerror = reject;
+        tempImg.src = prifyLogo;
+      });
+
+      // Create a canvas to convert SVG to PNG
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = tempImg.width;
+      tempCanvas.height = tempImg.height;
+      const ctx = tempCanvas.getContext('2d');
+      if (!ctx) throw new Error('Could not get canvas context');
+      ctx.drawImage(tempImg, 0, 0);
+      const pngUrl = tempCanvas.toDataURL('image/png');
+
       const clone = workoutCard.cloneNode(true) as HTMLElement;
       
-      clone.style.position = 'fixed';
-      clone.style.left = '-9999px';
-      clone.style.top = '0';
-      clone.style.background = 'white';
-      clone.style.padding = '20px';
-      clone.style.borderRadius = '8px';
-      clone.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
-      clone.style.width = `${workoutCard.offsetWidth}px`;
+      const wrapper = document.createElement('div');
+      wrapper.style.position = 'fixed';
+      wrapper.style.left = '-9999px';
+      wrapper.style.top = '0';
+      wrapper.style.background = 'white';
+      wrapper.style.padding = '20px';
+      wrapper.style.borderRadius = '8px';
+      wrapper.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
+      wrapper.style.width = `${workoutCard.offsetWidth}px`;
+      wrapper.style.display = 'flex';
+      wrapper.style.flexDirection = 'column';
+      wrapper.style.alignItems = 'center';
+      
+      // Add logo using PNG data URL with increased size
+      const logo = document.createElement('img');
+      logo.src = pngUrl;
+      logo.style.height = '60px';
+      logo.style.marginBottom = '16px';
+      wrapper.appendChild(logo);
+      
+      clone.style.width = '100%';
       clone.style.maxHeight = 'none';
       clone.style.overflow = 'visible';
       
       const actionButtons = clone.querySelectorAll('.action-buttons');
       actionButtons.forEach(button => button.remove());
       
-      document.body.appendChild(clone);
+      wrapper.appendChild(clone);
+      document.body.appendChild(wrapper);
 
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Wait for images to load and layout to stabilize
+      await new Promise(resolve => setTimeout(resolve, 200));
 
-      const canvas = await html2canvas(clone, {
+      const canvas = await html2canvas(wrapper, {
         backgroundColor: 'white',
         scale: 2,
         logging: false,
         useCORS: true,
-        windowHeight: clone.scrollHeight,
-        height: clone.scrollHeight,
+        windowHeight: wrapper.scrollHeight,
+        height: wrapper.scrollHeight,
         onclone: (clonedDoc) => {
           const clonedElement = clonedDoc.body.firstChild as HTMLElement;
           clonedElement.style.transform = 'none';
         }
       });
 
-      document.body.removeChild(clone);
+      document.body.removeChild(wrapper);
 
       const blob = await new Promise<Blob>(resolve => canvas.toBlob(blob => resolve(blob!), 'image/png'));
       
