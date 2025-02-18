@@ -1,14 +1,39 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { HomeIcon, ChartBarIcon } from '@heroicons/react/24/outline';
 import { supabase } from '../lib/supabase';
 
 export default function Navigation() {
   const location = useLocation();
+  const navigate = useNavigate();
   
   const handleLogout = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      console.error('Error signing out:', error);
+    try {
+      // Clear all Supabase-related items from localStorage
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key?.startsWith('sb-')) {
+          localStorage.removeItem(key);
+        }
+      }
+      
+      const { error } = await supabase.auth.signOut({
+        scope: 'local'
+      });
+      
+      if (error) {
+        // Only log real errors, not session-related ones
+        if (!error.message.includes('session') && !error.name.includes('AuthSession')) {
+          console.error('Error signing out:', error);
+        }
+      }
+      
+      // Force navigation to root after logout
+      navigate('/', { replace: true });
+      
+      // Reload the page to ensure a clean state
+      window.location.reload();
+    } catch (error) {
+      console.error('Unexpected error during sign out:', error);
     }
   };
   
