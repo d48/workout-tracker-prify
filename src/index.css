@@ -4,6 +4,15 @@
   img {
     @apply inline-block;
   }
+  
+  input[type="checkbox"] {
+    accent-color: #dbf111;
+  }
+  
+  input[type="checkbox"]:checked {
+    background-color: #dbf111;
+    border-color: #dbf111;
+  }
 }
 
 @tailwind components;
@@ -21,4 +30,14 @@ input::-webkit-outer-spin-button,
 input::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
+}
+
+/* Custom checkbox styling */
+@layer utilities {
+  .checkbox-custom {
+    @apply rounded border-gray-300;
+    @apply text-[#dbf111] focus:ring-[#dbf111];
+    @apply checked:bg-[#dbf111] checked:border-[#dbf111] checked:hover:bg-[#dbf111];
+    @apply checked:focus:bg-[#dbf111] checked:focus:border-[#dbf111];
+  }
 }

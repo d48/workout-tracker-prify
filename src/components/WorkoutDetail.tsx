@@ -526,7 +526,7 @@ export default function WorkoutDetail() {
                             completed: e.target.checked
                           })
                         }
-                        className="h-5 w-5 rounded border-gray-300 text-[#dbf111] focus:ring-[#dbf111]"
+                        className="h-5 w-5 rounded border-gray-300 accent-[#dbf111] checked:bg-[#dbf111] checked:border-[#dbf111] checked:hover:bg-[#dbf111] focus:ring-[#dbf111]"
                       />
                       <input
                         type="number"
