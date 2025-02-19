@@ -10,6 +10,7 @@ import Auth from './components/Auth';
 import PrivacyPolicy from './components/PrivacyPolicy';
 import TermsOfService from './components/TermsOfService';
 import { ThemeProvider } from './lib/ThemeContext';
+import { ToastProvider } from './lib/ToastContext';
 
 function App() {
   const [session, setSession] = useState<Session | null>(null);
@@ -28,39 +29,37 @@ function App() {
     return () => subscription.unsubscribe();
   }, []);
 
-  if (!session) {
-    return (
-      <ThemeProvider>
-        <Router>
-          <div className="dark:bg-gray-900 transition-colors">
-            <Routes>
-              <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-              <Route path="/terms-of-service" element={<TermsOfService />} />
-              <Route path="*" element={<Auth />} />
-            </Routes>
-          </div>
-        </Router>
-      </ThemeProvider>
-    );
-  }
-
   return (
     <ThemeProvider>
-      <Router>
-        <div className="min-h-screen bg-gray-100 dark:bg-gray-900 transition-colors">
-          <div className="max-w-lg mx-auto pb-20">
-            <Routes>
-              <Route path="/" element={<WorkoutList />} />
-              <Route path="/workout/:id" element={<WorkoutDetail />} />
-              <Route path="/statistics" element={<Statistics />} />
-              <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-              <Route path="/terms-of-service" element={<TermsOfService />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </div>
-          <Navigation />
-        </div>
-      </Router>
+      <ToastProvider>
+        {!session ? (
+          <Router>
+            <div className="dark:bg-gray-900 transition-colors">
+              <Routes>
+                <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                <Route path="/terms-of-service" element={<TermsOfService />} />
+                <Route path="*" element={<Auth />} />
+              </Routes>
+            </div>
+          </Router>
+        ) : (
+          <Router>
+            <div className="min-h-screen bg-gray-100 dark:bg-gray-900 transition-colors">
+              <div className="max-w-lg mx-auto pb-20">
+                <Routes>
+                  <Route path="/" element={<WorkoutList />} />
+                  <Route path="/workout/:id" element={<WorkoutDetail />} />
+                  <Route path="/statistics" element={<Statistics />} />
+                  <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                  <Route path="/terms-of-service" element={<TermsOfService />} />
+                  <Route path="*" element={<Navigate to="/" replace />} />
+                </Routes>
+              </div>
+              <Navigation />
+            </div>
+          </Router>
+        )}
+      </ToastProvider>
     </ThemeProvider>
   );
 }
