@@ -7,11 +7,9 @@ import html2canvas from 'html2canvas';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { findIconByName } from '../lib/exercise-icons';
 import { Database } from '../types/supabase';
+import prifyLogo from '../images/prify-logo.svg';
 import ThemeToggle from './ThemeToggle';
 import { useTheme } from '../lib/ThemeContext';
-import { useToast } from '../lib/ToastContext';
-import Modal from './Modal';
-import prifyLogo from '../images/prify-logo.svg';
 
 type Workout = Database['public']['Tables']['workouts']['Row'] & {
   exercises: Array<{
@@ -39,9 +37,6 @@ export default function WorkoutList() {
   const navigate = useNavigate();
   const workoutRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const { logo } = useTheme();
-  const { showToast } = useToast();
-  const [deleteWorkoutId, setDeleteWorkoutId] = useState<string | null>(null);
-  const [duplicateWorkoutId, setDuplicateWorkoutId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchWorkouts();
@@ -122,7 +117,8 @@ export default function WorkoutList() {
     }
   }
 
-  async function duplicateWorkout(workout: Workout) {
+  async function duplicateWorkout(workout: Workout, event: React.MouseEvent) {
+    event.stopPropagation();
     setLoading(true);
 
     try {
@@ -180,13 +176,17 @@ export default function WorkoutList() {
       navigate(`/workout/${newWorkout.id}`);
     } catch (error) {
       console.error('Error duplicating workout:', error);
-      showToast('Failed to duplicate workout. Please try again.');
+      alert('Failed to duplicate workout. Please try again.');
     } finally {
       setLoading(false);
     }
   }
 
   async function deleteWorkout(id: string) {
+    if (!confirm('Are you sure you want to delete this workout?')) {
+      return;
+    }
+
     const { error } = await supabase
       .from('workouts')
       .delete()
@@ -290,8 +290,6 @@ export default function WorkoutList() {
       const blob = await new Promise<Blob>(resolve => canvas.toBlob(blob => resolve(blob!), 'image/png'));
       
       // Try Web Share API first (mainly for mobile)
-
-      
       if (navigator.share) {
         try {
           const file = new File([blob], `${workout.name}-${format(new Date(workout.date), 'yyyy-MM-dd')}.png`, { type: 'image/png' });
@@ -306,23 +304,27 @@ export default function WorkoutList() {
         }
       }
 
+      // For desktop browsers: Try to copy to clipboard
       try {
+        // First try the modern Clipboard API with ClipboardItem
         if (navigator.clipboard && window.ClipboardItem) {
           await navigator.clipboard.write([
             new ClipboardItem({
               'image/png': blob
             })
           ]);
-          showToast('Workout summary copied to clipboard!');
+          alert('Workout summary copied to clipboard!');
           return;
         }
 
+        // Fallback for browsers that support basic clipboard write
         const dataUrl = canvas.toDataURL('image/png');
         await navigator.clipboard.writeText(dataUrl);
-        showToast('Workout summary copied to clipboard as data URL!');
+        alert('Workout summary copied to clipboard as data URL!');
       } catch (err) {
         console.error('Clipboard error:', err);
         
+        // Final fallback: create a download link
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -331,11 +333,11 @@ export default function WorkoutList() {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        showToast('Workout summary downloaded! (Your browser doesn\'t support clipboard access)');
+        alert('Workout summary downloaded! (Your browser doesn\'t support clipboard access)');
       }
     } catch (error) {
       console.error('Error sharing workout:', error);
-      showToast('Failed to share workout. Please try again.');
+      alert('Failed to share workout. Please try again.');
     }
   }
 
@@ -374,7 +376,7 @@ export default function WorkoutList() {
         <button
           onClick={() => handlePageChange(page - 1)}
           disabled={page === 1}
-          className="p-2 rounded-full disabled:opacity-50 disabled:cursor-not-allowed text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+          className="p-2 rounded-full disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-700"
         >
           <ChevronLeftIcon className="h-5 w-5" />
         </button>
@@ -387,7 +389,7 @@ export default function WorkoutList() {
               className={`w-8 h-8 rounded-full ${
                 pageNum === page
                   ? 'bg-[#dbf111] text-black'
-                  : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  : 'hover:bg-gray-100 dark:hover:bg-gray-700'
               }`}
             >
               {pageNum}
@@ -398,7 +400,7 @@ export default function WorkoutList() {
         <button
           onClick={() => handlePageChange(page + 1)}
           disabled={page === totalPages}
-          className="p-2 rounded-full disabled:opacity-50 disabled:cursor-not-allowed text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+          className="p-2 rounded-full disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-700"
         >
           <ChevronRightIcon className="h-5 w-5" />
         </button>
@@ -513,20 +515,14 @@ export default function WorkoutList() {
                     </div>
                     <div className="flex gap-3 action-buttons ml-4">
                       <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setDuplicateWorkoutId(workout.id);
-                        }}
+                        onClick={(e) => duplicateWorkout(workout, e)}
                         className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
                         title="Duplicate workout"
                       >
                         <DocumentDuplicateIcon className="h-5 w-5" />
                       </button>
                       <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          shareWorkout(workout, e);
-                        }}
+                        onClick={(e) => shareWorkout(workout, e)}
                         className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
                         title="Share workout"
                       >
@@ -535,7 +531,7 @@ export default function WorkoutList() {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          setDeleteWorkoutId(workout.id);
+                          deleteWorkout(workout.id);
                         }}
                         className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
                         title="Delete workout"
@@ -584,38 +580,6 @@ export default function WorkoutList() {
           </>
         )}
       </div>
-
-      <Modal
-        isOpen={!!deleteWorkoutId}
-        onClose={() => setDeleteWorkoutId(null)}
-        title="Delete Workout"
-        confirmLabel="Delete"
-        onConfirm={() => {
-          if (deleteWorkoutId) {
-            deleteWorkout(deleteWorkoutId);
-            setDeleteWorkoutId(null);
-          }
-        }}
-        danger
-      >
-        Are you sure you want to delete this workout? This action cannot be undone.
-      </Modal>
-
-      <Modal
-        isOpen={!!duplicateWorkoutId}
-        onClose={() => setDuplicateWorkoutId(null)}
-        title="Duplicate Workout"
-        confirmLabel="Duplicate"
-        onConfirm={() => {
-          const workout = workouts.find(w => w.id === duplicateWorkoutId);
-          if (workout) {
-            duplicateWorkout(workout);
-            setDuplicateWorkoutId(null);
-          }
-        }}
-      >
-        Do you want to create a copy of this workout? The new workout will be created with today's date.
-      </Modal>
     </div>
   );
 }

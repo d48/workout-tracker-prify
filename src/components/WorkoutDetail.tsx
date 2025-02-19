@@ -1,17 +1,16 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { format } from 'date-fns';
 import { PlusIcon, TrashIcon, ExclamationCircleIcon, DocumentCheckIcon, PencilIcon } from '@heroicons/react/24/outline';
 import { supabase } from '../lib/supabase';
 import ExerciseSelector from './ExerciseSelector';
 import ExerciseStats from './ExerciseStats';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { format } from 'date-fns';
 import { findIconByName } from '../lib/exercise-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { WorkoutFormData, Exercise, ExerciseTemplate, Set } from '../types/workout';
 import { Database } from '../types/supabase';
-import ThemeToggle from './ThemeToggle';
 import { useTheme } from '../lib/ThemeContext';
-import Modal from './Modal';
+import ThemeToggle from './ThemeToggle';
 
 type WorkoutResponse = Database['public']['Tables']['workouts']['Row'] & {
   exercises: (Database['public']['Tables']['exercises']['Row'] & {
@@ -45,7 +44,6 @@ export default function WorkoutDetail() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [retryCount, setRetryCount] = useState(0);
-  const [deleteExerciseId, setDeleteExerciseId] = useState<string | null>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
   const MAX_RETRIES = 3;
 
@@ -336,6 +334,10 @@ export default function WorkoutDetail() {
   }
 
   async function deleteExercise(exerciseId: string) {
+    if (!confirm('Are you sure you want to delete this exercise?')) {
+      return;
+    }
+
     if (loading) return;
     setLoading(true);
 
@@ -495,8 +497,8 @@ export default function WorkoutDetail() {
                     />
                   </div>
                   <button
-                    onClick={() => setDeleteExerciseId(exercise.id)}
-                    className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+                    onClick={() => deleteExercise(exercise.id)}
+                    className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white p-1"
                     title="Delete exercise"
                   >
                     <TrashIcon className="h-5 w-5" />
@@ -635,22 +637,6 @@ export default function WorkoutDetail() {
             Add Exercise
           </button>
         </div>
-
-        <Modal
-          isOpen={!!deleteExerciseId}
-          onClose={() => setDeleteExerciseId(null)}
-          title="Delete Exercise"
-          confirmLabel="Delete"
-          onConfirm={() => {
-            if (deleteExerciseId) {
-              deleteExercise(deleteExerciseId);
-              setDeleteExerciseId(null);
-            }
-          }}
-          danger
-        >
-          Are you sure you want to delete this exercise? This action cannot be undone.
-        </Modal>
 
         {showExerciseSelector && (
           <ExerciseSelector
