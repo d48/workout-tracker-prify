@@ -22,6 +22,7 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
   const [selectedIcon, setSelectedIcon] = useState<ExerciseIcon>(exerciseIcons[0]);
   const [iconSearch, setIconSearch] = useState('');
   const [showNewCategoryForm, setShowNewCategoryForm] = useState(false);
+  const [showNewExerciseForm, setShowNewExerciseForm] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [editingExercise, setEditingExercise] = useState<ExerciseTemplate | null>(null);
   const [error, setError] = useState('');
@@ -185,7 +186,9 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
       resetForm();
     } catch (error) {
       console.error('Error saving exercise:', error);
-      setError('Error saving exercise. Please try again.');
+      if (error instanceof Error) {
+        setError(error.message);
+      }
     }
   }
 
@@ -210,7 +213,9 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
       setExercises(exercises.filter(ex => ex.id !== exercise.id));
     } catch (error) {
       console.error('Error deleting exercise:', error);
-      setError('Error deleting exercise. Please try again.');
+      if (error instanceof Error) {
+        setError(error.message);
+      }
     }
   }
 
@@ -230,6 +235,7 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
       icon_name: exercise.icon_name || exerciseIcons[0].name
     });
     setSelectedIcon(findIconByName(exercise.icon_name || 'dumbbell'));
+    setShowNewExerciseForm(true);
   }
 
   function resetForm() {
@@ -243,6 +249,7 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
     });
     setSelectedIcon(exerciseIcons[0]);
     setEditingExercise(null);
+    setShowNewExerciseForm(false);
     setError('');
   }
 
@@ -448,101 +455,111 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
           </div>
 
           <div className="p-4 border-t dark:border-gray-700">
-            <form onSubmit={handleExerciseSubmit} className="space-y-4">
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  placeholder="New exercise name..."
-                  value={newExercise.name}
-                  onChange={(e) => setNewExercise({ ...newExercise, name: e.target.value })}
-                  className="flex-1 p-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111]"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowIconSelector(true)}
-                  className="p-2 border dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700"
-                >
-                  <FontAwesomeIcon icon={selectedIcon.iconDef} className="h-6 w-6 text-gray-600 dark:text-gray-300" />
-                </button>
-              </div>
-              
-              <select
-                value={newExercise.category_id}
-                onChange={(e) => setNewExercise(prev => ({ ...prev, category_id: e.target.value }))}
-                className="w-full p-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111]"
-              >
-                <option value="">Select category...</option>
-                {categories.map(category => (
-                  <option key={category.id} value={category.id}>
-                    {category.name}
-                  </option>
-                ))}
-              </select>
-
-              <div className="grid grid-cols-3 gap-2">
-                <div>
-                  <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">Default Sets</label>
-                  <input
-                    type="number"
-                    value={newExercise.default_sets ?? ''}
-                    onChange={(e) => handleNumberChange('default_sets', e.target.value)}
-                    min="1"
-                    className="w-full p-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111]"
-                    placeholder="Optional"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">Default Reps</label>
-                  <input
-                    type="number"
-                    value={newExercise.default_reps ?? ''}
-                    onChange={(e) => handleNumberChange('default_reps', e.target.value)}
-                    min="1"
-                    className="w-full p-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111]"
-                    placeholder="Optional"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">Miles</label>
-                  <input
-                    type="number"
-                    value={newExercise.default_distance ?? ''}
-                    onChange={(e) => handleNumberChange('default_distance', e.target.value)}
-                    min="0"
-                    step="any"
-                    className="w-full p-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111]"
-                    placeholder="Optional"
-                  />
-                </div>
-              </div>
-
+            {!showNewExerciseForm ? (
               <button
-                type="submit"
-                className="w-full bg-[#dbf111] text-black py-2 rounded hover:bg-[#c5d60f] flex items-center justify-center gap-2"
+                onClick={() => setShowNewExerciseForm(true)}
+                className="text-gray-900 dark:text-white hover:text-gray-700 dark:hover:text-gray-300 text-sm flex items-center gap-1"
               >
-                {editingExercise ? (
-                  <>
-                    <PencilIcon className="h-5 w-5" />
-                    Update Exercise
-                  </>
-                ) : (
-                  <>
-                    <PlusIcon className="h-5 w-5" />
-                    Add Custom Exercise
-                  </>
-                )}
+                <PlusIcon className="h-4 w-4" />
+                Add Custom Exercise
               </button>
-
-              {editingExercise && (
-                <button
-                  type="button"
-                  onClick={resetForm}
-                  className="w-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 py-2 rounded hover:bg-gray-200 dark:hover:bg-gray-600"
+            ) : (
+              <form onSubmit={handleExerciseSubmit} className="space-y-4">
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="New exercise name..."
+                    value={newExercise.name}
+                    onChange={(e) => setNewExercise({ ...newExercise, name: e.target.value })}
+                    className="flex-1 p-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111]"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowIconSelector(true)}
+                    className="p-2 border dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700"
+                  >
+                    <FontAwesomeIcon icon={selectedIcon.iconDef} className="h-6 w-6 text-gray-600 dark:text-gray-300" />
+                  </button>
+                </div>
+                
+                <select
+                  value={newExercise.category_id}
+                  onChange={(e) => setNewExercise(prev => ({ ...prev, category_id: e.target.value }))}
+                  className="w-full p-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111]"
                 >
-                  Cancel Editing
-                </button>
-              )}
-            </form>
+                  <option value="">Select category...</option>
+                  {categories.map(category => (
+                    <option key={category.id} value={category.id}>
+                      {category.name}
+                    </option>
+                  ))}
+                </select>
+
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">Default Sets</label>
+                    <input
+                      type="number"
+                      value={newExercise.default_sets ?? ''}
+                      onChange={(e) => handleNumberChange('default_sets', e.target.value)}
+                      min="1"
+                      className="w-full p-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111]"
+                      placeholder="Optional"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">Default Reps</label>
+                    <input
+                      type="number"
+                      value={newExercise.default_reps ?? ''}
+                      onChange={(e) => handleNumberChange('default_reps', e.target.value)}
+                      min="1"
+                      className="w-full p-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111]"
+                      placeholder="Optional"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">Miles</label>
+                    <input
+                      type="number"
+                      value={newExercise.default_distance ?? ''}
+                      onChange={(e) => handleNumberChange('default_distance', e.target.value)}
+                      min="0"
+                      step="any"
+                      className="w-full p-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111]"
+                      placeholder="Optional"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  <button
+                    type="submit"
+                    className="flex-1 bg-[#dbf111] text-black py-2 rounded hover:bg-[#c5d60f] flex items-center justify-center gap-2"
+                  >
+                    {editingExercise ? (
+                      <>
+                        <PencilIcon className="h-5 w-5" />
+                        Update Exercise
+                      </>
+                    ) : (
+                      <>
+                        <PlusIcon className="h-5 w-5" />
+                        Add Custom Exercise
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={resetForm}
+                    className="px-4 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 py-2 rounded hover:bg-gray-200 dark:hover:bg-gray-600"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       </div>
