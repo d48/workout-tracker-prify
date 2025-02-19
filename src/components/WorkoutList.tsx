@@ -491,7 +491,7 @@ export default function WorkoutList() {
           <WelcomeMessage />
         ) : (
           <>
-            <div className="space-y-4">
+            <div className="space-y-6">
               {workouts.map((workout) => (
                 <div
                   key={workout.id}
