@@ -216,20 +216,20 @@ export default function WorkoutList() {
 
   async function shareWorkout(workout: Workout, event: React.MouseEvent) {
     event.stopPropagation();
-    
+
     const workoutCard = workoutRefs.current[workout.id];
     if (!workoutCard) return;
 
     try {
-      // Create a temporary image element to convert SVG to PNG
+      // Create and load a temporary image element for the logo
       const tempImg = document.createElement('img');
-      await new Promise((resolve, reject) => {
-        tempImg.onload = resolve;
+      await new Promise<void>((resolve, reject) => {
+        tempImg.onload = () => resolve();
         tempImg.onerror = reject;
         tempImg.src = prifyLogo;
       });
 
-      // Create a canvas to convert SVG to PNG
+      // Create a canvas for the logo conversion
       const tempCanvas = document.createElement('canvas');
       tempCanvas.width = tempImg.width;
       tempCanvas.height = tempImg.height;
@@ -238,8 +238,8 @@ export default function WorkoutList() {
       ctx.drawImage(tempImg, 0, 0);
       const pngUrl = tempCanvas.toDataURL('image/png');
 
+      // Clone the workout card and prepare it for html2canvas
       const clone = workoutCard.cloneNode(true) as HTMLElement;
-      
       const wrapper = document.createElement('div');
       wrapper.style.position = 'fixed';
       wrapper.style.left = '-9999px';
@@ -252,27 +252,27 @@ export default function WorkoutList() {
       wrapper.style.display = 'flex';
       wrapper.style.flexDirection = 'column';
       wrapper.style.alignItems = 'center';
-      
+
       // Add logo using PNG data URL with increased size
       const logo = document.createElement('img');
       logo.src = pngUrl;
       logo.style.height = '60px';
       logo.style.marginBottom = '16px';
       wrapper.appendChild(logo);
-      
+
       clone.style.width = '100%';
       clone.style.maxHeight = 'none';
       clone.style.overflow = 'visible';
-      
+
       const actionButtons = clone.querySelectorAll('.action-buttons');
       actionButtons.forEach(button => button.remove());
-      
       wrapper.appendChild(clone);
       document.body.appendChild(wrapper);
 
-      // Wait for images to load and layout to stabilize
+      // Wait for layout to stabilize
       await new Promise(resolve => setTimeout(resolve, 200));
 
+      // Generate canvas image of the wrapper
       const canvas = await html2canvas(wrapper, {
         backgroundColor: 'white',
         scale: 2,
@@ -283,17 +283,35 @@ export default function WorkoutList() {
         onclone: (clonedDoc) => {
           const clonedElement = clonedDoc.body.firstChild as HTMLElement;
           clonedElement.style.transform = 'none';
-        }
+        },
       });
 
       document.body.removeChild(wrapper);
 
-      const blob = await new Promise<Blob>(resolve => canvas.toBlob(blob => resolve(blob!), 'image/png'));
-      
-      // Try Web Share API first (mainly for mobile)
-      if (navigator.share) {
+      const blob = await new Promise<Blob>((resolve) =>
+        canvas.toBlob(blob => resolve(blob!), 'image/png')
+      );
+
+      const filename = `${workout.name}-${format(new Date(workout.date), 'yyyy-MM-dd')}.png`;
+
+      const isIOS = /iP(ad|hone|od)/.test(navigator.userAgent);
+
+      // Desktop flow: try Clipboard API
+      if (!isIOS && navigator.clipboard && window.ClipboardItem) {
         try {
-          const file = new File([blob], `${workout.name}-${format(new Date(workout.date), 'yyyy-MM-dd')}.png`, { type: 'image/png' });
+          await navigator.clipboard.write([
+            new ClipboardItem({ 'image/png': blob })
+          ]);
+          alert('Workout summary copied to clipboard!');
+          return;
+        } catch (err) {
+          console.error('Clipboard API failed:', err);
+        }
+      }
+      // Mobile flow: try Web Share API
+      else if (isIOS && navigator.share) {
+        try {
+          const file = new File([blob], filename, { type: 'image/png' });
           await navigator.share({
             title: 'Workout Summary',
             text: `Check out my workout: ${workout.name}`,
@@ -301,41 +319,21 @@ export default function WorkoutList() {
           });
           return;
         } catch (err) {
-          console.log('Web Share API failed, falling back to clipboard', err);
+          console.error('Web Share API failed:', err);
         }
       }
 
-      // For desktop browsers: Try to copy to clipboard
-      try {
-        // First try the modern Clipboard API with ClipboardItem
-        if (navigator.clipboard && window.ClipboardItem) {
-          await navigator.clipboard.write([
-            new ClipboardItem({
-              'image/png': blob
-            })
-          ]);
-          alert('Workout summary copied to clipboard!');
-          return;
-        }
-
-        // Fallback for browsers that support basic clipboard write
-        const dataUrl = canvas.toDataURL('image/png');
-        await navigator.clipboard.writeText(dataUrl);
-        alert('Workout summary copied to clipboard as data URL!');
-      } catch (err) {
-        console.error('Clipboard error:', err);
-        
-        // Final fallback: create a download link
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${workout.name}-${format(new Date(workout.date), 'yyyy-MM-dd')}.png`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        alert('Workout summary downloaded! (Your browser doesn\'t support clipboard access)');
-      }
+      // Fallback: download the image automatically
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      alert('Image downloaded. (Your browser may not support copying images to the clipboard.)');
+      
     } catch (error) {
       console.error('Error sharing workout:', error);
       alert('Failed to share workout. Please try again.');
