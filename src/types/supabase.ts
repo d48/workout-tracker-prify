@@ -14,6 +14,8 @@ export interface Database {
           created_at: string
           id: string
           name: string
+          user_id: string | null
+          is_default: boolean
         }
         Insert: {
           created_at?: string
@@ -29,7 +31,7 @@ export interface Database {
       }
       exercise_templates: {
         Row: {
-          category_id: string
+          category_id: string | null
           created_at: string
           default_distance: number | null
           default_reps: number | null
@@ -39,6 +41,7 @@ export interface Database {
           is_custom: boolean
           name: string
           user_id: string | null
+          deleted_category_name: string | null
         }
         Insert: {
           category_id: string
@@ -53,7 +56,7 @@ export interface Database {
           user_id?: string | null
         }
         Update: {
-          category_id?: string
+          category_id?: string | null
           created_at?: string
           default_distance?: number | null
           default_reps?: number | null
