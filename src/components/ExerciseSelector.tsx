@@ -52,7 +52,6 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
     icon_name: exerciseIcons[0].name,
     deleted_category_name: null
   });
-  const [openCategoryOptions, setOpenCategoryOptions] = useState<string | null>(null);
 
   useEffect(() => {
     fetchCategories();
@@ -65,12 +64,7 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
     }
   }, [showNewExerciseForm]);
 
-  const filteredIcons = iconSearch
-    ? exerciseIcons.filter(icon => 
-        icon.name.toLowerCase().includes(iconSearch.toLowerCase()) ||
-        icon.keywords.some(keyword => keyword.toLowerCase().includes(iconSearch.toLowerCase()))
-      )
-    : exerciseIcons;
+  const filteredIcons = exerciseIcons;
 
   async function fetchCategories() {
     const { data, error } = await supabase
@@ -390,16 +384,7 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Select Icon</h3>
             <button onClick={() => setShowIconSelector(false)} className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">×</button>
           </div>
-          <div className="relative mb-4">
-            <MagnifyingGlassIcon className="h-5 w-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search icons..."
-              value={iconSearch}
-              onChange={(e) => setIconSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111]"
-            />
-          </div>
+
         </div>
         <div className="p-4 overflow-y-auto grid grid-cols-4 gap-4">
           {filteredIcons.map(icon => (
@@ -444,7 +429,7 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
             />
           </div>
           <div className="mb-2">
-            <div className="flex justify-between items-center mb-2">
+            <div className="flex justify-between items-center mb-6">
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Categories</label>
               <button
                 onClick={() => setShowNewCategoryForm(true)}
