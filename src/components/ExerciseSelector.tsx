@@ -20,6 +20,7 @@ type NewExerciseType = {
   default_sets: number | null;
   default_reps: number | null;
   default_distance: number | null;
+  default_duration: number | null; // <-- added duration field
   icon_name: string;
   deleted_category_name: string | null;
 };
@@ -48,6 +49,7 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
     default_sets: null,
     default_reps: null,
     default_distance: null,
+    default_duration: null, // <-- added default
     icon_name: exerciseIcons[0].name,
     deleted_category_name: null
   });
@@ -344,6 +346,7 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
       default_sets: exercise.default_sets,
       default_reps: exercise.default_reps,
       default_distance: exercise.default_distance,
+      default_duration: null, // <-- added default
       icon_name: exercise.icon_name || exerciseIcons[0].name,
       deleted_category_name: exercise.deleted_category_name ?? null
     });
@@ -358,6 +361,7 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
       default_sets: null,
       default_reps: null,
       default_distance: null,
+      default_duration: null,  // <-- reset duration as well
       icon_name: exerciseIcons[0].name,
       deleted_category_name: null
     });
@@ -367,7 +371,10 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
     setError('');
   }
 
-  const handleNumberChange = (field: 'default_sets' | 'default_reps' | 'default_distance', value: string) => {
+  const handleNumberChange = (
+    field: 'default_sets' | 'default_reps' | 'default_distance' | 'default_duration',
+    value: string
+  ) => {
     const numValue = value === '' ? null : Number(value);
     setNewExercise(prev => ({
       ...prev,
@@ -615,7 +622,7 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
                     <option key={category.id} value={category.id}>{category.name}</option>
                   ))}
                 </select>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-4 gap-2">
                   <div>
                     <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">Default Sets</label>
                     <input
@@ -644,6 +651,18 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
                       type="number"
                       value={newExercise.default_distance ?? ''}
                       onChange={(e) => handleNumberChange('default_distance', e.target.value)}
+                      min="0"
+                      step="any"
+                      className="w-full p-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111]"
+                      placeholder="Optional"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">Duration</label>
+                    <input
+                      type="number"
+                      value={newExercise.default_duration ?? ''}
+                      onChange={(e) => handleNumberChange('default_duration', e.target.value)}
                       min="0"
                       step="any"
                       className="w-full p-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111]"

@@ -233,6 +233,7 @@ export default function WorkoutDetail() {
         reps: template.default_reps,
         weight: null,
         distance: template.default_distance,
+        duration: template.default_duration, 
         completed: false
       }));
 
@@ -282,6 +283,12 @@ export default function WorkoutDetail() {
     setLoading(true);
 
     try {
+      const targetExercise = workout.exercises.find(ex => ex.id === exerciseId);
+      const defaultDuration =
+        targetExercise && (targetExercise as any).default_duration != null
+          ? (targetExercise as any).default_duration
+          : null; // Use null if no default is specified
+
       const { data, error } = await supabase
         .from('sets')
         .insert({
@@ -289,27 +296,24 @@ export default function WorkoutDetail() {
           reps: null,
           weight: null,
           distance: null,
+          duration: defaultDuration, // Now will be null if blank
           completed: false
         })
         .select()
         .single();
 
       if (error) throw error;
-      if (!data) throw new Error('No set data returned');
 
       setWorkout(prev => ({
         ...prev,
-        exercises: prev.exercises.map(exercise =>
-          exercise.id === exerciseId
-            ? { ...exercise, sets: [...exercise.sets, data as Set] }
-            : exercise
+        exercises: prev.exercises.map(ex =>
+          ex.id === exerciseId
+            ? { ...ex, sets: [...ex.sets, data as Set] }
+            : ex
         )
       }));
     } catch (error) {
       console.error('Error adding set:', error);
-      if (error instanceof Error) {
-        setError(error.message);
-      }
     } finally {
       setLoading(false);
     }
@@ -515,16 +519,17 @@ export default function WorkoutDetail() {
                 <ExerciseStats exercise={exercise} />
 
                 <div className="mt-4 space-y-4">
-                  <div className="grid grid-cols-[auto,1fr,1fr,1fr,auto] gap-4 px-2">
+                  <div className="grid grid-cols-[auto,1fr,1fr,1fr,1fr,auto] gap-4 px-2">
                     <div className="w-5"></div>
                     <div className="text-sm font-medium text-gray-600 dark:text-gray-300">Reps</div>
                     <div className="text-sm font-medium text-gray-600 dark:text-gray-300">Weight (lbs)</div>
                     <div className="text-sm font-medium text-gray-600 dark:text-gray-300">Distance (mi)</div>
+                    <div className="text-sm font-medium text-gray-600 dark:text-gray-300">Duration (min)</div>
                     <div className="w-5"></div>
                   </div>
 
                   {exercise.sets?.map((set) => (
-                    <div key={set.id} className="grid grid-cols-[auto,1fr,1fr,1fr,auto] gap-4 items-center">
+                    <div key={set.id} className="grid grid-cols-[auto,1fr,1fr,1fr,1fr,auto] gap-4 items-center">
                       <input
                         type="checkbox"
                         checked={set.completed}
@@ -566,6 +571,18 @@ export default function WorkoutDetail() {
                         onChange={(e) =>
                           handleSetChange(exercise.id, set.id, {
                             distance: e.target.value === '' ? null : Number(e.target.value)
+                          })
+                        }
+                        className="w-full p-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111]"
+                        placeholder="0"
+                      />
+                      <input
+                        type="number"
+                        step="any"
+                        value={set.duration ?? ''}
+                        onChange={(e) =>
+                          handleSetChange(exercise.id, set.id, {
+                            duration: e.target.value === '' ? null : Number(e.target.value)
                           })
                         }
                         className="w-full p-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111]"

@@ -1,0 +1,2 @@
+ALTER TABLE sets
+  ADD COLUMN duration numeric NOT NULL DEFAULT 0;

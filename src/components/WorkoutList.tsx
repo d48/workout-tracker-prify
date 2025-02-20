@@ -22,6 +22,7 @@ type Workout = Database['public']['Tables']['workouts']['Row'] & {
       reps: number | null;
       weight: number | null;
       distance: number | null;
+      duration?: number | null;
       completed: boolean;
     }>;
   }>;
@@ -34,11 +35,13 @@ function calculateExerciseStats(exercise: Workout['exercises'][0]) {
   const totalReps = completedSets.reduce((sum, set) => sum + (set.reps || 0), 0);
   const maxWeight = Math.max(...completedSets.map(set => set.weight || 0));
   const totalDistance = completedSets.reduce((sum, set) => sum + (set.distance || 0), 0);
+  const totalDuration = completedSets.reduce((sum, set) => sum + (set.duration || 0), 0);
 
   return {
     totalReps: totalReps > 0 ? totalReps : null,
     maxWeight: maxWeight > 0 ? maxWeight : null,
-    totalDistance: totalDistance > 0 ? totalDistance : null
+    totalDistance: totalDistance > 0 ? totalDistance : null,
+    totalDuration: totalDuration > 0 ? totalDuration : null
   };
 }
 
@@ -71,6 +74,7 @@ export default function WorkoutList() {
               reps,
               weight,
               distance,
+              duration,
               completed
             )
           )
@@ -176,6 +180,7 @@ export default function WorkoutList() {
           reps: set.reps,
           weight: set.weight,
           distance: set.distance,
+          duration: set.duration,  // new field
           completed: false // Reset completion status for the new workout
         }));
 
@@ -347,6 +352,7 @@ export default function WorkoutList() {
       totalReps: { value: number; workoutId: string; date: string } | null;
       maxWeight: { value: number; workoutId: string; date: string } | null;
       totalDistance: { value: number; workoutId: string; date: string } | null;
+      totalDuration: { value: number; workoutId: string; date: string } | null;
     }
   > = {};
 
@@ -365,6 +371,9 @@ export default function WorkoutList() {
           totalDistance: stats.totalDistance
             ? { value: stats.totalDistance, workoutId: workout.id, date: workout.date }
             : null,
+          totalDuration: stats.totalDuration
+            ? { value: stats.totalDuration, workoutId: workout.id, date: workout.date }
+            : null,
         };
       } else {
         if (stats.totalReps) {
@@ -375,7 +384,11 @@ export default function WorkoutList() {
             (stats.totalReps === currentTotal.value &&
               new Date(workout.date) > new Date(currentTotal.date))
           ) {
-            globalRecords[key].totalReps = { value: stats.totalReps, workoutId: workout.id, date: workout.date };
+            globalRecords[key].totalReps = {
+              value: stats.totalReps,
+              workoutId: workout.id,
+              date: workout.date,
+            };
           }
         }
         if (stats.maxWeight) {
@@ -386,7 +399,11 @@ export default function WorkoutList() {
             (stats.maxWeight === currentMax.value &&
               new Date(workout.date) > new Date(currentMax.date))
           ) {
-            globalRecords[key].maxWeight = { value: stats.maxWeight, workoutId: workout.id, date: workout.date };
+            globalRecords[key].maxWeight = {
+              value: stats.maxWeight,
+              workoutId: workout.id,
+              date: workout.date,
+            };
           }
         }
         if (stats.totalDistance) {
@@ -397,7 +414,26 @@ export default function WorkoutList() {
             (stats.totalDistance === currentDistance.value &&
               new Date(workout.date) > new Date(currentDistance.date))
           ) {
-            globalRecords[key].totalDistance = { value: stats.totalDistance, workoutId: workout.id, date: workout.date };
+            globalRecords[key].totalDistance = {
+              value: stats.totalDistance,
+              workoutId: workout.id,
+              date: workout.date,
+            };
+          }
+        }
+        if (stats.totalDuration) {
+          const currentDuration = globalRecords[key].totalDuration;
+          if (
+            !currentDuration ||
+            stats.totalDuration > currentDuration.value ||
+            (stats.totalDuration === currentDuration.value &&
+              new Date(workout.date) > new Date(currentDuration.date))
+          ) {
+            globalRecords[key].totalDuration = {
+              value: stats.totalDuration,
+              workoutId: workout.id,
+              date: workout.date,
+            };
           }
         }
       }
@@ -611,42 +647,58 @@ export default function WorkoutList() {
                           const stats = calculateExerciseStats(exercise);
                           const record = globalRecords[exercise.name];
 
-                          // Only count workouts for the same exercise name
-                          const repsOccurrences = workouts.filter(w =>
-                            w.exercises.some(ex =>
-                              ex.name === exercise.name &&
-                              calculateExerciseStats(ex).totalReps === record?.totalReps?.value
+                          // Count occurrences for each metric for this exercise
+                          const repsOccurrences = workouts.filter((w) =>
+                            w.exercises.some(
+                              (ex) =>
+                                ex.name === exercise.name &&
+                                calculateExerciseStats(ex).totalReps === record?.totalReps?.value
                             )
                           ).length;
-                          const weightOccurrences = workouts.filter(w =>
-                            w.exercises.some(ex =>
-                              ex.name === exercise.name &&
-                              calculateExerciseStats(ex).maxWeight === record?.maxWeight?.value
+                          const weightOccurrences = workouts.filter((w) =>
+                            w.exercises.some(
+                              (ex) =>
+                                ex.name === exercise.name &&
+                                calculateExerciseStats(ex).maxWeight === record?.maxWeight?.value
                             )
                           ).length;
-                          const distanceOccurrences = workouts.filter(w =>
-                            w.exercises.some(ex =>
-                              ex.name === exercise.name &&
-                              calculateExerciseStats(ex).totalDistance === record?.totalDistance?.value
+                          const distanceOccurrences = workouts.filter((w) =>
+                            w.exercises.some(
+                              (ex) =>
+                                ex.name === exercise.name &&
+                                calculateExerciseStats(ex).totalDistance === record?.totalDistance?.value
+                            )
+                          ).length;
+                          const durationOccurrences = workouts.filter((w) =>
+                            w.exercises.some(
+                              (ex) =>
+                                ex.name === exercise.name &&
+                                calculateExerciseStats(ex).totalDuration === record?.totalDuration?.value
                             )
                           ).length;
 
+                          // Check if this workout is a new record for any metric
                           const isNewRecord =
                             (stats.totalReps &&
-                             record?.totalReps &&
-                             stats.totalReps === record.totalReps.value &&
-                             workout.id === record.totalReps.workoutId &&
-                             repsOccurrences === 1) ||
+                              record?.totalReps &&
+                              stats.totalReps === record.totalReps.value &&
+                              workout.id === record.totalReps.workoutId &&
+                              repsOccurrences === 1) ||
                             (stats.maxWeight &&
-                             record?.maxWeight &&
-                             stats.maxWeight === record.maxWeight.value &&
-                             workout.id === record.maxWeight.workoutId &&
-                             weightOccurrences === 1) ||
+                              record?.maxWeight &&
+                              stats.maxWeight === record.maxWeight.value &&
+                              workout.id === record.maxWeight.workoutId &&
+                              weightOccurrences === 1) ||
                             (stats.totalDistance &&
-                             record?.totalDistance &&
-                             stats.totalDistance === record.totalDistance.value &&
-                             workout.id === record.totalDistance.workoutId &&
-                             distanceOccurrences === 1);
+                              record?.totalDistance &&
+                              stats.totalDistance === record.totalDistance.value &&
+                              workout.id === record.totalDistance.workoutId &&
+                              distanceOccurrences === 1) ||
+                            (stats.totalDuration &&
+                              record?.totalDuration &&
+                              stats.totalDuration === record.totalDuration.value &&
+                              workout.id === record.totalDuration.workoutId &&
+                              durationOccurrences === 1);
 
                           return (
                             <div
@@ -673,6 +725,7 @@ export default function WorkoutList() {
                                 {stats.totalReps && <span>{stats.totalReps} reps</span>}
                                 {stats.maxWeight && <span>{stats.maxWeight} lbs</span>}
                                 {stats.totalDistance && <span>{stats.totalDistance.toFixed(1)} mi</span>}
+                                {stats.totalDuration !== null && <span>{stats.totalDuration} min</span>}
                               </div>
                             </div>
                           );

@@ -49,6 +49,7 @@ type Workout = Database['public']['Tables']['workouts']['Row'] & {
       reps: number | null;
       weight: number | null;
       distance: number | null;
+      duration: number | null;
       completed: boolean;
     }>;
   }>;
@@ -63,7 +64,8 @@ interface ExerciseData {
   hasData: boolean;
 }
 
-type MetricType = 'reps' | 'weight' | 'distance';
+// Change MetricType to include 'duration'
+type MetricType = 'reps' | 'weight' | 'distance' | 'duration';
 type PeriodType = 'today' | 'week' | 'month' | 'quarter' | 'year';
 
 export default function Statistics() {
@@ -158,6 +160,8 @@ export default function Statistics() {
               value = Math.max(value, set.weight);
             } else if (selectedMetric === 'distance' && set.distance) {
               value += set.distance;
+            } else if (selectedMetric === 'duration' && set.duration) {
+              value += set.duration;
             }
           }
         });
@@ -185,7 +189,6 @@ export default function Statistics() {
         });
       });
     });
-
     setStats({
       totalWorkouts: workouts.length,
       totalExercises: filteredExerciseData.length,
@@ -226,7 +229,8 @@ export default function Statistics() {
         display: true,
         text: selectedMetric === 'reps' ? 'Total Reps per Exercise' :
               selectedMetric === 'weight' ? 'Max Weight per Exercise (lbs)' :
-              'Total Distance per Exercise (mi)',
+              selectedMetric === 'distance' ? 'Total Distance per Exercise (mi)' :
+              'Total Duration per Exercise (min)',
         font: {
           size: 14
         },
@@ -240,7 +244,8 @@ export default function Statistics() {
           display: true,
           text: selectedMetric === 'reps' ? 'Reps' :
                 selectedMetric === 'weight' ? 'Weight (lbs)' :
-                'Distance (mi)',
+                selectedMetric === 'distance' ? 'Distance (mi)' :
+                'Duration (min)',
           color: theme === 'dark' ? '#fff' : '#000'
         },
         ticks: {
@@ -328,14 +333,16 @@ export default function Statistics() {
         </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 mb-8">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Exercise Performance</h2>
-            <div className="flex gap-2">
+          <div className="mb-4">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+              Exercise Performance
+            </h2>
+            <div className="flex gap-2 mt-2">
               <button
                 onClick={() => setSelectedMetric('reps')}
                 className={`px-3 py-1 rounded-full text-sm ${
-                  selectedMetric === 'reps' 
-                    ? 'bg-[#dbf111] text-black' 
+                  selectedMetric === 'reps'
+                    ? 'bg-[#dbf111] text-black'
                     : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
                 }`}
               >
@@ -344,8 +351,8 @@ export default function Statistics() {
               <button
                 onClick={() => setSelectedMetric('weight')}
                 className={`px-3 py-1 rounded-full text-sm ${
-                  selectedMetric === 'weight' 
-                    ? 'bg-[#dbf111] text-black' 
+                  selectedMetric === 'weight'
+                    ? 'bg-[#dbf111] text-black'
                     : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
                 }`}
               >
@@ -354,12 +361,22 @@ export default function Statistics() {
               <button
                 onClick={() => setSelectedMetric('distance')}
                 className={`px-3 py-1 rounded-full text-sm ${
-                  selectedMetric === 'distance' 
-                    ? 'bg-[#dbf111] text-black' 
+                  selectedMetric === 'distance'
+                    ? 'bg-[#dbf111] text-black'
                     : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
                 }`}
               >
                 Distance
+              </button>
+              <button
+                onClick={() => setSelectedMetric('duration')}
+                className={`px-3 py-1 rounded-full text-sm ${
+                  selectedMetric === 'duration'
+                    ? 'bg-[#dbf111] text-black'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
+                }`}
+              >
+                Duration
               </button>
             </div>
           </div>

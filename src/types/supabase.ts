@@ -42,6 +42,7 @@ export interface Database {
           name: string
           user_id: string | null
           deleted_category_name: string | null
+          default_duration: number | null // <-- added field
         }
         Insert: {
           category_id: string
@@ -54,6 +55,7 @@ export interface Database {
           is_custom?: boolean
           name: string
           user_id?: string | null
+          default_duration?: number | null // <-- added field
         }
         Update: {
           category_id?: string | null
@@ -66,6 +68,7 @@ export interface Database {
           is_custom?: boolean
           name?: string
           user_id?: string | null
+          default_duration?: number | null // <-- added field
         }
         Relationships: [
           {
@@ -121,6 +124,7 @@ export interface Database {
           completed: boolean
           created_at: string
           distance: number | null
+          duration: number | null
           exercise_id: string
           id: string
           reps: number | null
@@ -130,6 +134,7 @@ export interface Database {
           completed?: boolean
           created_at?: string
           distance?: number | null
+          duration?: number | null
           exercise_id: string
           id?: string
           reps?: number | null
@@ -139,6 +144,7 @@ export interface Database {
           completed?: boolean
           created_at?: string
           distance?: number | null
+          duration?: number | null
           exercise_id?: string
           id?: string
           reps?: number | null
