@@ -443,7 +443,7 @@ export default function WorkoutList() {
           disabled={page === 1}
           className="p-2 rounded-full disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-700"
         >
-          <ChevronLeftIcon className="h-5 w-5" />
+          <ChevronLeftIcon className="h-5 w-5 text-gray-600 dark:text-gray-300" />
         </button>
         
         <div className="flex items-center gap-2">
@@ -454,7 +454,7 @@ export default function WorkoutList() {
               className={`w-8 h-8 rounded-full ${
                 pageNum === page
                   ? 'bg-[#dbf111] text-black'
-                  : 'hover:bg-gray-100 dark:hover:bg-gray-700'
+                  : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
               }`}
             >
               {pageNum}
@@ -467,7 +467,7 @@ export default function WorkoutList() {
           disabled={page === totalPages}
           className="p-2 rounded-full disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-700"
         >
-          <ChevronRightIcon className="h-5 w-5" />
+          <ChevronRightIcon className="h-5 w-5 text-gray-600 dark:text-gray-300" />
         </button>
       </div>
     );
