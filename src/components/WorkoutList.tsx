@@ -370,31 +370,34 @@ export default function WorkoutList() {
         };
       } else {
         if (stats.totalReps) {
+          const currentTotal = globalRecords[key].totalReps;
           if (
-            !globalRecords[key].totalReps ||
-            stats.totalReps > globalRecords[key].totalReps.value ||
-            (stats.totalReps === globalRecords[key].totalReps.value &&
-              new Date(workout.date) > new Date(globalRecords[key].totalReps.date))
+            !currentTotal ||
+            stats.totalReps > currentTotal.value ||
+            (stats.totalReps === currentTotal.value &&
+              new Date(workout.date) > new Date(currentTotal.date))
           ) {
             globalRecords[key].totalReps = { value: stats.totalReps, workoutId: workout.id, date: workout.date };
           }
         }
         if (stats.maxWeight) {
+          const currentMax = globalRecords[key].maxWeight;
           if (
-            !globalRecords[key].maxWeight ||
-            stats.maxWeight > globalRecords[key].maxWeight.value ||
-            (stats.maxWeight === globalRecords[key].maxWeight.value &&
-              new Date(workout.date) > new Date(globalRecords[key].maxWeight.date))
+            !currentMax ||
+            stats.maxWeight > currentMax.value ||
+            (stats.maxWeight === currentMax.value &&
+              new Date(workout.date) > new Date(currentMax.date))
           ) {
             globalRecords[key].maxWeight = { value: stats.maxWeight, workoutId: workout.id, date: workout.date };
           }
         }
         if (stats.totalDistance) {
+          const currentDistance = globalRecords[key].totalDistance;
           if (
-            !globalRecords[key].totalDistance ||
-            stats.totalDistance > globalRecords[key].totalDistance.value ||
-            (stats.totalDistance === globalRecords[key].totalDistance.value &&
-              new Date(workout.date) > new Date(globalRecords[key].totalDistance.date))
+            !currentDistance ||
+            stats.totalDistance > currentDistance.value ||
+            (stats.totalDistance === currentDistance.value &&
+              new Date(workout.date) > new Date(currentDistance.date))
           ) {
             globalRecords[key].totalDistance = { value: stats.totalDistance, workoutId: workout.id, date: workout.date };
           }
@@ -555,8 +558,6 @@ export default function WorkoutList() {
           <>
             <div className="space-y-6">
               {workouts.map((workout) => {
-                // Initialize record tracker for this workout's exercises
-                let recordMaxes = { reps: 0, weight: 0, distance: 0 };
 
                 return (
                   <div
