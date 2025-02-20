@@ -10,6 +10,7 @@ import { Database } from '../types/supabase';
 import prifyLogo from '../images/prify-logo.svg';
 import ThemeToggle from './ThemeToggle';
 import { useTheme } from '../lib/ThemeContext';
+import { faTrophy } from '@fortawesome/free-solid-svg-icons';
 
 type Workout = Database['public']['Tables']['workouts']['Row'] & {
   exercises: Array<{
@@ -27,6 +28,19 @@ type Workout = Database['public']['Tables']['workouts']['Row'] & {
 };
 
 const WORKOUTS_PER_PAGE = 10;
+
+function calculateExerciseStats(exercise: Workout['exercises'][0]) {
+  const completedSets = exercise.sets.filter(set => set.completed);
+  const totalReps = completedSets.reduce((sum, set) => sum + (set.reps || 0), 0);
+  const maxWeight = Math.max(...completedSets.map(set => set.weight || 0));
+  const totalDistance = completedSets.reduce((sum, set) => sum + (set.distance || 0), 0);
+
+  return {
+    totalReps: totalReps > 0 ? totalReps : null,
+    maxWeight: maxWeight > 0 ? maxWeight : null,
+    totalDistance: totalDistance > 0 ? totalDistance : null
+  };
+}
 
 export default function WorkoutList() {
   const [workouts, setWorkouts] = useState<Workout[]>([]);
@@ -200,19 +214,6 @@ export default function WorkoutList() {
     setWorkouts(workouts.filter(w => w.id !== id));
   }
 
-  function calculateExerciseStats(exercise: Workout['exercises'][0]) {
-    const completedSets = exercise.sets.filter(set => set.completed);
-    const totalReps = completedSets.reduce((sum, set) => sum + (set.reps || 0), 0);
-    const maxWeight = Math.max(...completedSets.map(set => set.weight || 0));
-    const totalDistance = completedSets.reduce((sum, set) => sum + (set.distance || 0), 0);
-
-    return {
-      totalReps: totalReps > 0 ? totalReps : null,
-      maxWeight: maxWeight > 0 ? maxWeight : null,
-      totalDistance: totalDistance > 0 ? totalDistance : null
-    };
-  }
-
   async function shareWorkout(workout: Workout, event: React.MouseEvent) {
     event.stopPropagation();
     
@@ -340,6 +341,67 @@ export default function WorkoutList() {
       alert('Failed to share workout. Please try again.');
     }
   }
+
+  // Compute global records for each exercise name from the visible workouts
+  const globalRecords: Record<
+    string,
+    {
+      totalReps: { value: number; workoutId: string; date: string } | null;
+      maxWeight: { value: number; workoutId: string; date: string } | null;
+      totalDistance: { value: number; workoutId: string; date: string } | null;
+    }
+  > = {};
+
+  workouts.forEach((workout) => {
+    workout.exercises.forEach((exercise) => {
+      const stats = calculateExerciseStats(exercise);
+      const key = exercise.name;
+      if (!globalRecords[key]) {
+        globalRecords[key] = {
+          totalReps: stats.totalReps
+            ? { value: stats.totalReps, workoutId: workout.id, date: workout.date }
+            : null,
+          maxWeight: stats.maxWeight
+            ? { value: stats.maxWeight, workoutId: workout.id, date: workout.date }
+            : null,
+          totalDistance: stats.totalDistance
+            ? { value: stats.totalDistance, workoutId: workout.id, date: workout.date }
+            : null,
+        };
+      } else {
+        if (stats.totalReps) {
+          if (
+            !globalRecords[key].totalReps ||
+            stats.totalReps > globalRecords[key].totalReps.value ||
+            (stats.totalReps === globalRecords[key].totalReps.value &&
+              new Date(workout.date) > new Date(globalRecords[key].totalReps.date))
+          ) {
+            globalRecords[key].totalReps = { value: stats.totalReps, workoutId: workout.id, date: workout.date };
+          }
+        }
+        if (stats.maxWeight) {
+          if (
+            !globalRecords[key].maxWeight ||
+            stats.maxWeight > globalRecords[key].maxWeight.value ||
+            (stats.maxWeight === globalRecords[key].maxWeight.value &&
+              new Date(workout.date) > new Date(globalRecords[key].maxWeight.date))
+          ) {
+            globalRecords[key].maxWeight = { value: stats.maxWeight, workoutId: workout.id, date: workout.date };
+          }
+        }
+        if (stats.totalDistance) {
+          if (
+            !globalRecords[key].totalDistance ||
+            stats.totalDistance > globalRecords[key].totalDistance.value ||
+            (stats.totalDistance === globalRecords[key].totalDistance.value &&
+              new Date(workout.date) > new Date(globalRecords[key].totalDistance.date))
+          ) {
+            globalRecords[key].totalDistance = { value: stats.totalDistance, workoutId: workout.id, date: workout.date };
+          }
+        }
+      }
+    });
+  });
 
   const WelcomeMessage = () => (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 text-center">
@@ -492,89 +554,114 @@ export default function WorkoutList() {
         ) : (
           <>
             <div className="space-y-6">
-              {workouts.map((workout) => (
-                <div
-                  key={workout.id}
-                  ref={el => workoutRefs.current[workout.id] = el}
-                  onClick={() => navigate(`/workout/${workout.id}`)}
-                  className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                >
-                  <div className="flex justify-between items-start mb-6">
-                    <div className="flex-1">
-                      <h2 className="text-lg font-semibold text-gray-900 dark:text-white hover:text-[#dbf111] dark:hover:text-[#dbf111] transition-colors">
-                        {workout.name}
-                      </h2>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        {format(new Date(workout.date), 'MMM d, yyyy')}
-                      </p>
-                      {workout.notes && (
-                        <p className="text-sm text-gray-600 dark:text-gray-300 mt-2 whitespace-pre-wrap">
-                          {workout.notes}
-                        </p>
-                      )}
-                    </div>
-                    <div className="flex gap-3 action-buttons ml-4">
-                      <button
-                        onClick={(e) => duplicateWorkout(workout, e)}
-                        className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
-                        title="Duplicate workout"
-                      >
-                        <DocumentDuplicateIcon className="h-5 w-5" />
-                      </button>
-                      <button
-                        onClick={(e) => shareWorkout(workout, e)}
-                        className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
-                        title="Share workout"
-                      >
-                        <ShareIcon className="h-5 w-5" />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          deleteWorkout(workout.id);
-                        }}
-                        className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
-                        title="Delete workout"
-                      >
-                        <TrashIcon className="h-5 w-5" />
-                      </button>
-                    </div>
-                  </div>
+              {workouts.map((workout) => {
+                // Initialize record tracker for this workout's exercises
+                let recordMaxes = { reps: 0, weight: 0, distance: 0 };
 
-                  {workout.exercises?.length > 0 && (
-                    <div className="space-y-2">
-                      {workout.exercises.map((exercise) => {
-                        const stats = calculateExerciseStats(exercise);
-                        const iconInfo = findIconByName(exercise.icon_name || 'dumbbell');
-                        
-                        return (
-                          <div
-                            key={exercise.id}
-                            className="flex items-center gap-2 text-sm bg-gray-50 dark:bg-gray-700 p-2 rounded"
-                          >
-                            <FontAwesomeIcon 
-                              icon={iconInfo.iconDef} 
-                              className="h-4 w-4 text-gray-600 dark:text-gray-300" 
-                            />
-                            <span className="font-medium text-gray-900 dark:text-white">{exercise.name}</span>
-                            <div className="flex gap-3 ml-auto text-xs text-gray-600 dark:text-gray-300">
-                              {stats.totalReps && (
-                                <span>{stats.totalReps} reps</span>
-                              )}
-                              {stats.maxWeight && (
-                                <span>{stats.maxWeight} lbs</span>
-                              )}
-                              {stats.totalDistance && (
-                                <span>{stats.totalDistance.toFixed(1)} mi</span>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
+                return (
+                  <div
+                    key={workout.id}
+                    ref={el => workoutRefs.current[workout.id] = el}
+                    onClick={() => navigate(`/workout/${workout.id}`)}
+                    className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    <div className="flex justify-between items-start mb-6">
+                      <div className="flex-1">
+                        <h2 className="text-lg font-semibold text-gray-900 dark:text-white hover:text-[#dbf111] dark:hover:text-[#dbf111] transition-colors">
+                          {workout.name}
+                        </h2>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          {format(new Date(workout.date), 'MMM d, yyyy')}
+                        </p>
+                        {workout.notes && (
+                          <p className="text-sm text-gray-600 dark:text-gray-300 mt-2 whitespace-pre-wrap">
+                            {workout.notes}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex gap-3 action-buttons ml-4">
+                        <button
+                          onClick={(e) => duplicateWorkout(workout, e)}
+                          className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+                          title="Duplicate workout"
+                        >
+                          <DocumentDuplicateIcon className="h-5 w-5" />
+                        </button>
+                        <button
+                          onClick={(e) => shareWorkout(workout, e)}
+                          className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+                          title="Share workout"
+                        >
+                          <ShareIcon className="h-5 w-5" />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteWorkout(workout.id);
+                          }}
+                          className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+                          title="Delete workout"
+                        >
+                          <TrashIcon className="h-5 w-5" />
+                        </button>
+                      </div>
                     </div>
-                  )}
-                </div>
-              ))}
+
+                    {workout.exercises?.length > 0 && (
+                      <div className="space-y-2">
+                        {workout.exercises.map((exercise) => {
+                          const stats = calculateExerciseStats(exercise);
+                          const record = globalRecords[exercise.name];
+                          const isNewRecord =
+                            (stats.totalReps &&
+                              record.totalReps &&
+                              stats.totalReps === record.totalReps.value &&
+                              workout.id === record.totalReps.workoutId) ||
+                            (stats.maxWeight &&
+                              record.maxWeight &&
+                              stats.maxWeight === record.maxWeight.value &&
+                              workout.id === record.maxWeight.workoutId) ||
+                            (stats.totalDistance &&
+                              record.totalDistance &&
+                              stats.totalDistance === record.totalDistance.value &&
+                              workout.id === record.totalDistance.workoutId);
+
+                          const iconInfo = findIconByName(exercise.icon_name || 'dumbbell');
+                          
+                          return (
+                            <div
+                              key={exercise.id}
+                              className="relative flex items-center gap-3 bg-gray-50 dark:bg-gray-700 p-2 rounded"
+                            >
+                              <FontAwesomeIcon 
+                                icon={iconInfo.iconDef} 
+                                className="h-4 w-4 text-gray-600 dark:text-gray-300" 
+                              />
+                              <div className="inline-flex items-center gap-3">
+                                <span className="text-sm text-gray-900 dark:text-white">
+                                  {exercise.name}
+                                </span>
+                                {isNewRecord && (
+                                  <FontAwesomeIcon 
+                                    icon={faTrophy} 
+                                    className="h-4 w-4 text-gray-600 dark:text-[#dbf111]" 
+                                    title="New record!"
+                                  />
+                                )}
+                              </div>
+                              <div className="flex gap-3 ml-auto text-xs text-gray-600 dark:text-gray-300">
+                                {stats.totalReps && <span>{stats.totalReps} reps</span>}
+                                {stats.maxWeight && <span>{stats.maxWeight} lbs</span>}
+                                {stats.totalDistance && <span>{stats.totalDistance.toFixed(1)} mi</span>}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
             <Pagination />
           </>
