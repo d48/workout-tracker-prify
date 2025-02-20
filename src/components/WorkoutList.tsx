@@ -558,7 +558,6 @@ export default function WorkoutList() {
           <>
             <div className="space-y-6">
               {workouts.map((workout) => {
-
                 return (
                   <div
                     key={workout.id}
@@ -613,29 +612,51 @@ export default function WorkoutList() {
                         {workout.exercises.map((exercise) => {
                           const stats = calculateExerciseStats(exercise);
                           const record = globalRecords[exercise.name];
+
+                          // Only count workouts for the same exercise name
+                          const repsOccurrences = workouts.filter(w =>
+                            w.exercises.some(ex =>
+                              ex.name === exercise.name &&
+                              calculateExerciseStats(ex).totalReps === record?.totalReps?.value
+                            )
+                          ).length;
+                          const weightOccurrences = workouts.filter(w =>
+                            w.exercises.some(ex =>
+                              ex.name === exercise.name &&
+                              calculateExerciseStats(ex).maxWeight === record?.maxWeight?.value
+                            )
+                          ).length;
+                          const distanceOccurrences = workouts.filter(w =>
+                            w.exercises.some(ex =>
+                              ex.name === exercise.name &&
+                              calculateExerciseStats(ex).totalDistance === record?.totalDistance?.value
+                            )
+                          ).length;
+
                           const isNewRecord =
                             (stats.totalReps &&
-                              record.totalReps &&
-                              stats.totalReps === record.totalReps.value &&
-                              workout.id === record.totalReps.workoutId) ||
+                             record?.totalReps &&
+                             stats.totalReps === record.totalReps.value &&
+                             workout.id === record.totalReps.workoutId &&
+                             repsOccurrences === 1) ||
                             (stats.maxWeight &&
-                              record.maxWeight &&
-                              stats.maxWeight === record.maxWeight.value &&
-                              workout.id === record.maxWeight.workoutId) ||
+                             record?.maxWeight &&
+                             stats.maxWeight === record.maxWeight.value &&
+                             workout.id === record.maxWeight.workoutId &&
+                             weightOccurrences === 1) ||
                             (stats.totalDistance &&
-                              record.totalDistance &&
-                              stats.totalDistance === record.totalDistance.value &&
-                              workout.id === record.totalDistance.workoutId);
+                             record?.totalDistance &&
+                             stats.totalDistance === record.totalDistance.value &&
+                             workout.id === record.totalDistance.workoutId &&
+                             distanceOccurrences === 1);
 
-                          const iconInfo = findIconByName(exercise.icon_name || 'dumbbell');
-                          
                           return (
                             <div
                               key={exercise.id}
                               className="relative flex items-center gap-3 bg-gray-50 dark:bg-gray-700 p-2 rounded"
                             >
                               <FontAwesomeIcon 
-                                icon={iconInfo.iconDef} 
+                                icon={findIconByName(exercise.icon_name || 'dumbbell').iconDef} 
                                 className="h-4 w-4 text-gray-600 dark:text-gray-300" 
                               />
                               <div className="inline-flex items-center gap-3">
