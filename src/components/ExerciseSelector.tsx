@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { findIconByName, exerciseIcons, ExerciseIcon } from '../lib/exercise-icons';
-import { PlusIcon, MagnifyingGlassIcon, XMarkIcon, PencilIcon, TrashIcon, EllipsisVerticalIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, MagnifyingGlassIcon, XMarkIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { Database } from '../types/supabase';
 
 type Category = Database['public']['Tables']['exercise_categories']['Row'];
@@ -36,7 +36,6 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
   const [selectedCategory, setSelectedCategory] = useState<string | null | undefined>(undefined);
   const [showIconSelector, setShowIconSelector] = useState(false);
   const [selectedIcon, setSelectedIcon] = useState<ExerciseIcon>(exerciseIcons[0]);
-  const [iconSearch, setIconSearch] = useState('');
   const [showNewCategoryForm, setShowNewCategoryForm] = useState(false);
   const [showNewExerciseForm, setShowNewExerciseForm] = useState(false);
   const newExerciseFormRef = useRef<HTMLDivElement>(null);
