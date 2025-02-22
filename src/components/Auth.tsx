@@ -146,7 +146,7 @@ export default function Auth() {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/sign-in`,
+          redirectTo: `${window.location.origin}/workouts`,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent'
