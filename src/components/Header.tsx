@@ -6,7 +6,7 @@ const Header = () => {
   const { logo } = useTheme();
 
   return (
-    <header className="bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 shadow-md sticky top-0 z-50">
+    <header className="bg-white bg-opacity-80 dark:bg-gray-950  dark:bg-opacity-80 backdrop-blur-md text-gray-900 dark:text-gray-100 shadow-md sticky top-0 z-50 border-b border-gray-200 dark:border-gray-800">
       <div className="container mx-auto flex justify-between items-center py-4 px-4">
         <Link to="/" className="text-2xl font-bold">
           <img src={logo} alt="PRify Logo" className="h-16" />

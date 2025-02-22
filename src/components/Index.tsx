@@ -13,7 +13,7 @@ const Index = () => {
       <Header />
       
       {/* Hero Section */}
-      <section ref={heroRef} className="pt-32 pb-16 px-4">
+      <section ref={heroRef} className="pt-32 pb-16 px-8">
         <div className="container mx-auto text-center">
           <div className={`transition-opacity duration-1000 ${heroVisible ? 'opacity-100' : 'opacity-0'}`}>
             <span className="bg-[#dbf111]/10 text-primary-foreground dark:text-[#dbf111] px-4 py-1.5 rounded-full text-sm font-medium">
@@ -39,7 +39,7 @@ const Index = () => {
       </section>
 
       {/* Core Features Section */}
-      <section ref={featuresRef} className="py-16 px-4">
+      <section ref={featuresRef} className="py-16 px-8">
         <div className="container mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             <div className={`p-6 rounded-2xl bg-gray-50 dark:bg-gray-900 transition-all duration-1000 ${featuresVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}>
@@ -64,7 +64,7 @@ const Index = () => {
       </section>
 
       {/* Exercise Customization Section */}
-      <section ref={customizationRef} className="py-16 px-4 bg-gray-50 dark:bg-gray-900">
+      <section ref={customizationRef} className="py-16 px-8 bg-gray-50 dark:bg-gray-900">
         <div className="container mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
             <div className={`space-y-6 transition-all duration-1000 ${customizationVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}>
@@ -80,7 +80,7 @@ const Index = () => {
       </section>
 
       {/* Share Workouts Section */}
-      <section ref={shareRef} className="py-16 px-4">
+      <section ref={shareRef} className="py-16 px-8">
         <div className="container mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
             <div className={`order-2 md:order-1 grid grid-cols-2 gap-4 transition-all duration-1000 ${shareVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}>
@@ -96,7 +96,7 @@ const Index = () => {
       </section>
 
       {/* Theme Support Section */}
-      <section ref={themeRef} className="py-16 px-4 bg-gray-50 dark:bg-gray-900">
+      <section ref={themeRef} className="py-16 px-8 bg-gray-50 dark:bg-gray-900">
         <div className="container mx-auto text-center">
           <h2 className={`text-3xl md:text-4xl font-bold mb-8 transition-all duration-1000 ${themeVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}>
             Your Comfort, Your Choice

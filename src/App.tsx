@@ -29,39 +29,23 @@ function App() {
     return () => subscription.unsubscribe();
   }, []);
 
-  if (!session) {
-    return (
-      <ThemeProvider>
-        <Router>
-          <div className="dark:bg-gray-900 transition-colors">
-            <Routes>
-              <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-              <Route path="/terms-of-service" element={<TermsOfService />} />
-              <Route path="/" element={<Index />} />
-              <Route path="/sign-in" element={<Auth />} />
-              <Route path="*" element={<Auth />} />
-            </Routes>
-          </div>
-        </Router>
-      </ThemeProvider>
-    );
-  }
-
   return (
     <ThemeProvider>
       <Router>
         <div className="min-h-screen bg-gray-100 dark:bg-gray-900 transition-colors">
           <div className="max-w-lg mx-auto pb-20">
             <Routes>
+              <Route path="/" element={session ? <Navigate to="/workouts" replace /> : <Index />} />
+              <Route path="/sign-in" element={<Auth />} />
+              <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+              <Route path="/terms-of-service" element={<TermsOfService />} />
               <Route path="/workouts" element={<WorkoutList />} />
               <Route path="/workout/:id" element={<WorkoutDetail />} />
               <Route path="/statistics" element={<Statistics />} />
-              <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-              <Route path="/terms-of-service" element={<TermsOfService />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
+              <Route path="*" element={<Navigate to={session ? "/workouts" : "/"} replace />} />
             </Routes>
           </div>
-          <Navigation />
+          {session && <Navigation />}
         </div>
       </Router>
     </ThemeProvider>

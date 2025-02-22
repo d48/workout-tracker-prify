@@ -44,8 +44,15 @@ export default function WorkoutDetail() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [retryCount, setRetryCount] = useState(0);
-  const titleInputRef = useRef<HTMLInputElement>(null);
+  const titleInputRef = useRef<HTMLTextAreaElement>(null);
   const MAX_RETRIES = 3;
+
+  useEffect(() => {
+    if (titleInputRef.current) {
+      titleInputRef.current.style.height = 'auto';
+      titleInputRef.current.style.height = `${titleInputRef.current.scrollHeight}px`;
+    }
+  }, [workout.name]);
 
   const debouncedSaveNotes = useCallback(
     debounce(async (exerciseId: string, notes: string) => {
@@ -431,13 +438,13 @@ export default function WorkoutDetail() {
 
         <div className="mb-6 space-y-4">
           <div className="relative group">
-            <input
+          <textarea
               ref={titleInputRef}
-              type="text"
               value={workout.name}
               onChange={(e) => setWorkout(prev => ({ ...prev, name: e.target.value }))}
-              className="text-2xl font-bold w-full bg-transparent dark:text-white pr-8 focus:bg-white dark:focus:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-[#dbf111] rounded-lg transition-colors p-2"
+              className="text-2xl font-bold w-full bg-transparent dark:text-white pr-8 focus:bg-white dark:focus:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-[#dbf111] rounded-lg transition-colors p-2 resize-none"
               placeholder="Workout Name"
+              rows={1}
             />
             <button
               onClick={() => titleInputRef.current?.focus()}
