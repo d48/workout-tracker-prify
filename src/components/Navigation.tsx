@@ -28,7 +28,7 @@ export default function Navigation() {
       }
       
       // Force navigation to root after logout
-      navigate('/', { replace: true });
+      navigate('/sign-in', { replace: true });
       
       // Reload the page to ensure a clean state
       window.location.reload();
@@ -42,9 +42,9 @@ export default function Navigation() {
       <div className="max-w-lg mx-auto px-4">
         <div className="flex justify-around py-3">
           <Link 
-            to="/" 
+            to="/workouts" 
             className={`flex flex-col items-center min-w-[100px] h-[64px] justify-center ${
-              location.pathname === '/' 
+              location.pathname === '/workouts' 
                 ? 'text-black dark:text-black bg-[#dbf111] px-4 rounded-lg' 
                 : 'text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-white hover:bg-[#dbf111] px-4 rounded-lg'
             }`}

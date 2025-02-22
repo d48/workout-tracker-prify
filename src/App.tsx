@@ -9,6 +9,7 @@ import Navigation from './components/Navigation';
 import Auth from './components/Auth';
 import PrivacyPolicy from './components/PrivacyPolicy';
 import TermsOfService from './components/TermsOfService';
+import Index from './components/Index';
 import { ThemeProvider } from './lib/ThemeContext';
 
 function App() {
@@ -36,6 +37,8 @@ function App() {
             <Routes>
               <Route path="/privacy-policy" element={<PrivacyPolicy />} />
               <Route path="/terms-of-service" element={<TermsOfService />} />
+              <Route path="/" element={<Index />} />
+              <Route path="/sign-in" element={<Auth />} />
               <Route path="*" element={<Auth />} />
             </Routes>
           </div>
@@ -50,7 +53,7 @@ function App() {
         <div className="min-h-screen bg-gray-100 dark:bg-gray-900 transition-colors">
           <div className="max-w-lg mx-auto pb-20">
             <Routes>
-              <Route path="/" element={<WorkoutList />} />
+              <Route path="/workouts" element={<WorkoutList />} />
               <Route path="/workout/:id" element={<WorkoutDetail />} />
               <Route path="/statistics" element={<Statistics />} />
               <Route path="/privacy-policy" element={<PrivacyPolicy />} />
