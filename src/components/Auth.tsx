@@ -142,18 +142,23 @@ export default function Auth() {
       setError('');
       setLoading(true);
       setAuthInProgress(true);
-      
+
+      // Determine the redirect URL based on the environment
+      const redirectToUrl = process.env.NODE_ENV === 'development'
+        ? 'http://localhost:5173/workouts'
+        : `${window.location.origin}/workouts`;
+
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/workouts`,
+          redirectTo: redirectToUrl,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent'
           }
         }
       });
-      
+
       if (error) throw error;
 
       if (!data.url) {
