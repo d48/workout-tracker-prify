@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import { AuthError } from '@supabase/supabase-js';
 import { useTheme } from '../lib/ThemeContext';
 import ThemeToggle from './ThemeToggle';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 export default function Auth() {
   const [loading, setLoading] = useState(false);
@@ -12,6 +12,7 @@ export default function Auth() {
   const [error, setError] = useState('');
   const [authInProgress, setAuthInProgress] = useState(false);
   const { logo } = useTheme();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -124,6 +125,8 @@ export default function Auth() {
       } else if (!data.session) {
         setError('Unable to sign in. Please try again.');
         setAuthInProgress(false);
+      } else {
+        navigate('/workouts');
       }
     } catch (err) {
       const authError = err as AuthError;
@@ -143,7 +146,7 @@ export default function Auth() {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: window.location.origin,
+          redirectTo: `${window.location.origin}/workouts`,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent'
