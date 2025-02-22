@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import { AuthError } from '@supabase/supabase-js';
 import { useTheme } from '../lib/ThemeContext';
 import ThemeToggle from './ThemeToggle';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 export default function Auth() {
   const [loading, setLoading] = useState(false);
