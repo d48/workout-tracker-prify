@@ -1,5 +1,4 @@
-
-// import Header from "../components/Header";
+import Header from "../components/Header";
 import { useIntersectionObserver } from "../hooks/useIntersectionObserver.tsx";
 
 const Index = () => {
@@ -11,25 +10,25 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100">
-      {/* <Header /> */}
+      <Header />
       
       {/* Hero Section */}
       <section ref={heroRef} className="pt-32 pb-16 px-4">
         <div className="container mx-auto text-center">
           <div className={`transition-opacity duration-1000 ${heroVisible ? 'opacity-100' : 'opacity-0'}`}>
-            <span className="bg-primary/10 text-primary-foreground dark:text-primary px-4 py-1.5 rounded-full text-sm font-medium">
+            <span className="bg-[#dbf111]/10 text-primary-foreground dark:text-[#dbf111] px-4 py-1.5 rounded-full text-sm font-medium">
               Track Your Workouts, Break Your Records
             </span>
           </div>
           <h1 className={`mt-8 text-4xl md:text-6xl font-bold tracking-tight transition-all duration-1000 delay-200 ${heroVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}>
             Your Personal Records (PRs),{" "}
-            <span className="text-primary">Simplified</span>
+            <span className="text-[#dbf111]">Simplified</span>
           </h1>
           <p className={`mt-6 text-lg md:text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto transition-all duration-1000 delay-400 ${heroVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}>
             PRify helps you track your workouts, monitor your progress, and break your personal records with an intuitive mobile interface.
           </p>
           <div className={`mt-10 flex flex-col sm:flex-row gap-4 justify-center items-center transition-all duration-1000 delay-600 ${heroVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}>
-            <a href="/sign-in" className="w-full sm:w-auto bg-primary text-primary-foreground px-8 py-3 rounded-full text-lg font-medium hover:bg-primary/90 transition-colors">
+            <a href="/sign-in" className="w-full sm:w-auto bg-[#dbf111] text-black px-8 py-3 rounded-full text-lg font-medium hover:bg-primary/90 transition-colors">
               Start Breaking Records
             </a>
             <a href="/sign-in" className="w-full sm:w-auto bg-gray-100 dark:bg-gray-800 px-8 py-3 rounded-full text-lg font-medium hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
