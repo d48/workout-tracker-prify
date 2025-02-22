@@ -125,7 +125,7 @@ const Index = () => {
             <span>•</span>
             <a href="/terms-of-service" className="hover:text-primary transition-colors">Terms of Service</a>
           </div>
-          <p className="mt-4">© 2024 PRify. All rights reserved.</p>
+          <p className="mt-4">© 2025 PRify. All rights reserved.</p>
         </div>
       </footer>
     </div>
