@@ -4,6 +4,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { findIconByName, exerciseIcons, ExerciseIcon } from '../lib/exercise-icons';
 import { PlusIcon, MagnifyingGlassIcon, XMarkIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { Database } from '../types/supabase';
+import { isValidUrl } from './WorkoutDetail';
 
 type Category = Database['public']['Tables']['exercise_categories']['Row'];
 // We assume the exercise_templates table already contains these fields:
@@ -265,12 +266,18 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
   async function handleExerciseSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
-    
+  
+    // Validate sample URL if provided (using the isValidUrl helper from WorkoutDetail)
+    if (newExercise.sample_url && !isValidUrl(newExercise.sample_url)) {
+      setError('Please enter a valid URL. Example: https://example.com/sample');
+      return;
+    }
+  
     if (!newExercise.name.trim() || !newExercise.category_id) {
       setError('Please enter a name and select a category');
       return;
     }
-
+  
     const existingExercise = exercises.find(
       ex => ex.name.toLowerCase() === newExercise.name.toLowerCase() &&
            (!editingExercise || ex.id !== editingExercise.id)
@@ -279,13 +286,13 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
       setError('An exercise with this name already exists');
       return;
     }
-
+  
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       console.error('No authenticated user found');
       return;
     }
-
+  
     try {
       if (editingExercise) {
         const { data, error } = await supabase
@@ -298,7 +305,7 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
           .eq('id', editingExercise.id)
           .select()
           .single();
-
+  
         if (error) throw error;
         if (data) {
           setExercises(exercises.map(ex => ex.id === data.id ? data : ex));
@@ -315,7 +322,7 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
           })
           .select()
           .single();
-
+  
         if (error) throw error;
         if (data) {
           setExercises([...exercises, data]);
@@ -703,6 +710,12 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
                   placeholder="https://example.com/sample"
                   className="w-full p-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111] mt-1"
                 />
+                {/* Inline error message for sample URL, shown only after clicking Update/Add if invalid */}
+                {error && error.includes('https://example.com/sample') && (
+                  <span className="text-xs text-red-500">
+                    {error}
+                  </span>
+                )}
                 <div className="flex gap-2">
                   <button
                     type="submit"

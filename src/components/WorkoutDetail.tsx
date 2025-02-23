@@ -41,6 +41,15 @@ function debounce<T extends (...args: any[]) => any>(
   };
 }
 
+export function isValidUrl(url: string): boolean {
+  try {
+    new URL(url);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export default function WorkoutDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -301,6 +310,12 @@ export default function WorkoutDetail() {
 
   async function saveSampleUrl(exerciseId: string) {
     try {
+      // If there is a URL provided, validate it.
+      if (editingUrl && !isValidUrl(editingUrl)) {
+        setError('Please enter a valid URL.');
+        return;
+      }
+
       // Update the exercise record with the new sample_url in the exercises table.
       const { error } = await supabase
         .from('exercises')
@@ -342,7 +357,7 @@ export default function WorkoutDetail() {
             }));
 
             // Check for an existing personal override in exercise_templates.
-            // If one exists, update its sample_url. (Do not create a duplicate if none exists.)
+            // If one exists, update its sample_url.
             const { data: existingOverride, error: fetchError } = await supabase
               .from('exercise_templates')
               .select('*')
@@ -643,10 +658,20 @@ export default function WorkoutDetail() {
                       <input
                         type="url"
                         value={editingUrl}
-                        onChange={(e) => setEditingUrl(e.target.value)}
+                        onChange={(e) => {
+                          setEditingUrl(e.target.value);
+                          // Clear the error when user starts typing:
+                          if (error === 'Please enter a valid URL.') setError('');
+                        }}
                         placeholder="https://example.com/sample"
                         className="p-2 border dark:border-gray-600 rounded"
                       />
+                      {/* Show error message if the sample URL is invalid */}
+                      {error && error.includes('valid URL') && (
+                        <span className="text-xs text-red-500">
+                          Please enter a valid URL. Example: https://example.com/sample
+                        </span>
+                      )}
                       <label className="text-sm text-gray-600 dark:text-gray-300">
                         <input
                           type="checkbox"
