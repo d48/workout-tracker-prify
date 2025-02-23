@@ -239,7 +239,24 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
     }
   }
 
-  const filteredExercises = exercises.filter(exercise => {
+  const uniqueExercises = Object.values(
+    exercises.reduce((acc: { [key: string]: ExerciseTemplate }, curr) => {
+      const key = curr.name.toLowerCase();
+      // If no exercise exists for this name, add it
+      if (!acc[key]) {
+        acc[key] = curr;
+      } else {
+        // Prefer the custom record (if exists) over the default
+        if (curr.is_custom) {
+          acc[key] = curr;
+        }
+      }
+      return acc;
+    }, {})
+  );
+
+  // Then filter the uniqueExercises as needed:
+  const filteredExercises = uniqueExercises.filter(exercise => {
     const matchesSearch = exercise.name.toLowerCase().includes(search.toLowerCase());
     const matchesCategory = !selectedCategory || exercise.category_id === selectedCategory;
     return matchesSearch && matchesCategory;
