@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { PlusIcon, TrashIcon, ExclamationCircleIcon, DocumentCheckIcon, PencilIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, TrashIcon, ExclamationCircleIcon, DocumentCheckIcon, PencilIcon, ArrowTopRightOnSquareIcon } from '@heroicons/react/24/outline';
 import { supabase } from '../lib/supabase';
 import ExerciseSelector from './ExerciseSelector';
 import ExerciseStats from './ExerciseStats';
@@ -46,6 +46,9 @@ export default function WorkoutDetail() {
   const [retryCount, setRetryCount] = useState(0);
   const titleInputRef = useRef<HTMLTextAreaElement>(null);
   const MAX_RETRIES = 3;
+  const [editingUrlExerciseId, setEditingUrlExerciseId] = useState<string | null>(null);
+  const [editingUrl, setEditingUrl] = useState('');
+  const [updateDefault, setUpdateDefault] = useState(false);
 
   useEffect(() => {
     if (titleInputRef.current) {
@@ -225,7 +228,8 @@ export default function WorkoutDetail() {
           workout_id: currentWorkoutId,
           name: template.name,
           notes: '',
-          icon_name: template.icon_name
+          icon_name: template.icon_name,
+          sample_url: template.sample_url || null  // <== copy sample_url from template
         })
         .select()
         .single();
@@ -273,15 +277,47 @@ export default function WorkoutDetail() {
     }
   }
 
-  function handleExerciseNotesChange(exerciseId: string, notes: string) {
-    setWorkout(prev => ({
-      ...prev,
-      exercises: prev.exercises.map(ex =>
-        ex.id === exerciseId ? { ...ex, notes } : ex
-      )
-    }));
+  async function saveSampleUrl(exerciseId: string) {
+    try {
+      // Update the custom exercise record with new sample_url
+      const { error } = await supabase
+        .from('exercises')
+        .update({ sample_url: editingUrl || null })
+        .eq('id', exerciseId);
+      if (error) throw error;
 
-    debouncedSaveNotes(exerciseId, notes);
+      setWorkout(prev => ({
+        ...prev,
+        exercises: prev.exercises.map(ex =>
+          ex.id === exerciseId ? { ...ex, sample_url: editingUrl || null } : ex
+        )
+      }));
+
+      // Optionally update the default sample_url in the template if chosen.
+      if (updateDefault) {
+        // Note: In a full solution you might store a templateId instead of matching by name.
+        await supabase
+          .from('exercise_templates')
+          .update({ sample_url: editingUrl || null })
+          .eq('name', workout.exercises.find(ex => ex.id === exerciseId)?.name ?? '');
+      }
+
+      cancelSampleUrlEdit();
+    } catch (err) {
+      console.error('Error updating sample URL', err);
+      setError('Failed to update sample URL');
+    }
+  }
+
+  function startSampleUrlEdit(exerciseId: string, currentUrl: string) {
+    setEditingUrlExerciseId(exerciseId);
+    setEditingUrl(currentUrl || '');
+  }
+
+  function cancelSampleUrlEdit() {
+    setEditingUrlExerciseId(null);
+    setEditingUrl('');
+    setUpdateDefault(false);
   }
 
   async function addSet(exerciseId: string) {
@@ -321,6 +357,17 @@ export default function WorkoutDetail() {
       // Ensure that loading is turned off if this action had set it.
       setLoading(false);
     }
+  }
+
+  function handleExerciseNotesChange(exerciseId: string, notes: string) {
+    setWorkout(prev => ({
+      ...prev,
+      exercises: prev.exercises.map(ex =>
+        ex.id === exerciseId ? { ...ex, notes } : ex
+      )
+    }));
+
+    debouncedSaveNotes(exerciseId, notes);
   }
 
   function handleSetChange(exerciseId: string, setId: string, updates: Partial<Set>) {
@@ -466,7 +513,6 @@ export default function WorkoutDetail() {
         <div className="space-y-6">
           {workout.exercises.map((exercise) => {
             const iconInfo = findIconByName(exercise.icon_name || 'dumbbell');
-
             return (
               <div key={exercise.id} className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
                 <div className="flex justify-between items-center mb-4">
@@ -481,14 +527,13 @@ export default function WorkoutDetail() {
                       onChange={async (e) => {
                         const newName = e.target.value;
                         const newIconName = findIconByName(exercise.icon_name || 'dumbbell').name;
-                        
                         const { error } = await supabase
                           .from('exercises')
                           .update({ 
                             name: newName,
                             icon_name: newIconName
-                          }) .eq('id', exercise.id);
-
+                          })
+                          .eq('id', exercise.id);
                         if (!error) {
                           setWorkout(prev => ({
                             ...prev,
@@ -510,6 +555,64 @@ export default function WorkoutDetail() {
                   >
                     <TrashIcon className="h-5 w-5" />
                   </button>
+                </div>
+
+                {/* Sample URL Section Positioned Just Below the Title */}
+                <div className="mb-4"> {/* Increased margin-bottom for breathing room */}
+                  {editingUrlExerciseId === exercise.id ? (
+                    <div className="flex flex-col gap-2">
+                      <input
+                        type="url"
+                        value={editingUrl}
+                        onChange={(e) => setEditingUrl(e.target.value)}
+                        placeholder="Enter sample URL"
+                        className="p-2 border dark:border-gray-600 rounded"
+                      />
+                      <label className="text-sm text-gray-600 dark:text-gray-300">
+                        <input
+                          type="checkbox"
+                          checked={updateDefault}
+                          onChange={(e) => setUpdateDefault(e.target.checked)}
+                          className="accent-[#dbf111] mr-1"
+                        />
+                        Update default exercise URL
+                      </label>
+                      <div className="flex gap-2">
+                        <button 
+                          onClick={() => saveSampleUrl(exercise.id)}
+                          className="px-3 py-1 bg-[#dbf111] text-black rounded shadow hover:bg-[#c5d60f] text-xs"
+                        >
+                          Save URL
+                        </button>
+                        <button 
+                          onClick={cancelSampleUrlEdit}
+                          className="px-3 py-1 border border-gray-300 text-gray-600 dark:border-gray-500 dark:text-gray-300 rounded hover:bg-gray-200 hover:text-gray-800 dark:hover:bg-gray-700 dark:hover:text-gray-100 text-xs"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    exercise.sample_url && (
+                      <div className="flex items-center gap-2">
+                        <a
+                          href={exercise.sample_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white text-sm underline"
+                        >
+                          <ArrowTopRightOnSquareIcon className="h-5 w-5" />
+                          <span className="ml-2">View how to do this exercise</span>
+                        </a>
+                        <button
+                          onClick={() => startSampleUrlEdit(exercise.id, exercise.sample_url || '')}
+                          className="text-sm text-gray-500 hover:underline ml-4"
+                        >
+                          <PencilIcon className="h-5 w-5" title="Edit URL" />
+                        </button>
+                      </div>
+                    )
+                  )}
                 </div>
 
                 <textarea

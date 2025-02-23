@@ -20,8 +20,9 @@ type NewExerciseType = {
   default_sets: number | null;
   default_reps: number | null;
   default_distance: number | null;
-  default_duration: number | null; // <-- added duration field
+  default_duration: number | null; // added duration field
   icon_name: string;
+  sample_url?: string;  // <== added sample_url field (optional)
   deleted_category_name: string | null;
 };
 
@@ -51,6 +52,7 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
     default_distance: null,
     default_duration: null, // <-- added default
     icon_name: exerciseIcons[0].name,
+    sample_url: '', // <== added sample_url field (optional)
     deleted_category_name: null
   });
 
@@ -346,8 +348,9 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
       default_sets: exercise.default_sets,
       default_reps: exercise.default_reps,
       default_distance: exercise.default_distance,
-      default_duration: null, // <-- added default
+      default_duration: exercise.default_duration,
       icon_name: exercise.icon_name || exerciseIcons[0].name,
+      sample_url: exercise.sample_url || '', // <== load sample URL into the form
       deleted_category_name: exercise.deleted_category_name ?? null
     });
     setSelectedIcon(findIconByName(exercise.icon_name || 'dumbbell'));
@@ -363,6 +366,7 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
       default_distance: null,
       default_duration: null,  // <-- reset duration as well
       icon_name: exerciseIcons[0].name,
+      sample_url: '', // <== reset sample_url as well
       deleted_category_name: null
     });
     setSelectedIcon(exerciseIcons[0]);
@@ -670,6 +674,18 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
                     />
                   </div>
                 </div>
+                <label className="block text-sm font-medium text-gray-600 dark:text-gray-300 mt-4">
+                  How to do this exercise URL (optional)
+                </label>
+                <input
+                  type="url"
+                  value={newExercise.sample_url || ''}
+                  onChange={(e) =>
+                    setNewExercise(prev => ({ ...prev, sample_url: e.target.value }))
+                  }
+                  placeholder="https://example.com/sample"
+                  className="w-full p-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111] mt-1"
+                />
                 <div className="flex gap-2">
                   <button
                     type="submit"

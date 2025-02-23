@@ -43,6 +43,7 @@ export interface Database {
           user_id: string | null
           deleted_category_name: string | null
           default_duration: number | null // <-- added field
+          sample_url: string | null      // <-- new sample_url field
         }
         Insert: {
           category_id: string
@@ -56,6 +57,7 @@ export interface Database {
           name: string
           user_id?: string | null
           default_duration?: number | null // <-- added field
+          sample_url?: string | null       // <-- new sample_url field
         }
         Update: {
           category_id?: string | null
@@ -69,6 +71,7 @@ export interface Database {
           name?: string
           user_id?: string | null
           default_duration?: number | null // <-- added field
+          sample_url?: string | null       // <-- new sample_url field
         }
         Relationships: [
           {
@@ -93,6 +96,7 @@ export interface Database {
           name: string
           notes: string | null
           workout_id: string
+          sample_url: string | null       // <-- new sample_url field
         }
         Insert: {
           created_at?: string
@@ -101,6 +105,7 @@ export interface Database {
           name: string
           notes?: string | null
           workout_id: string
+          sample_url?: string | null      // <-- new sample_url field
         }
         Update: {
           created_at?: string
@@ -109,6 +114,7 @@ export interface Database {
           name?: string
           notes?: string | null
           workout_id?: string
+          sample_url?: string | null      // <-- new sample_url field
         }
         Relationships: [
           {
