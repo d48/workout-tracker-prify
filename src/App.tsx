@@ -33,7 +33,7 @@ function App() {
     <ThemeProvider>
       <Router>
         <div className="min-h-screen bg-gray-100 dark:bg-gray-900 transition-colors">
-          <div className="max-w-lg mx-auto pb-20">
+          <div className="max-w-full mx-auto pb-20">
             <Routes>
               <Route path="/" element={session ? <Navigate to="/workouts" replace /> : <Index />} />
               <Route path="/sign-in" element={<Auth />} />

@@ -9,7 +9,7 @@ const Index = () => {
   const [themeRef, themeVisible] = useIntersectionObserver();
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100">
+    <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
       <Header />
       
       {/* Hero Section */}
@@ -64,7 +64,7 @@ const Index = () => {
       </section>
 
       {/* Exercise Customization Section */}
-      <section ref={customizationRef} className="py-16 px-8 bg-gray-50 dark:bg-gray-900">
+      <section ref={customizationRef} className="py-16 px-8 bg-gray-50 dark:bg-gray-800">
         <div className="container mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
             <div className={`space-y-6 transition-all duration-1000 ${customizationVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}>
@@ -96,7 +96,7 @@ const Index = () => {
       </section>
 
       {/* Theme Support Section */}
-      <section ref={themeRef} className="py-16 px-8 bg-gray-50 dark:bg-gray-900">
+      <section ref={themeRef} className="py-16 px-8 bg-gray-50 dark:bg-gray-800">
         <div className="container mx-auto text-center">
           <h2 className={`text-3xl md:text-4xl font-bold mb-8 transition-all duration-1000 ${themeVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}>
             Your Comfort, Your Choice
