@@ -644,7 +644,7 @@ export default function WorkoutDetail() {
                         type="url"
                         value={editingUrl}
                         onChange={(e) => setEditingUrl(e.target.value)}
-                        placeholder="Enter sample URL"
+                        placeholder="https://example.com/sample"
                         className="p-2 border dark:border-gray-600 rounded"
                       />
                       <label className="text-sm text-gray-600 dark:text-gray-300">
