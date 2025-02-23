@@ -214,7 +214,6 @@ export default function WorkoutDetail() {
   }
 
   async function handleExerciseSelect(template: ExerciseTemplate) {
-    if (loading) return;
     setLoading(true);
 
     try {
@@ -286,9 +285,6 @@ export default function WorkoutDetail() {
   }
 
   async function addSet(exerciseId: string) {
-    if (loading) return;
-    setLoading(true);
-
     try {
       const targetExercise = workout.exercises.find(ex => ex.id === exerciseId);
       const defaultDuration =
@@ -322,6 +318,7 @@ export default function WorkoutDetail() {
     } catch (error) {
       console.error('Error adding set:', error);
     } finally {
+      // Ensure that loading is turned off if this action had set it.
       setLoading(false);
     }
   }
@@ -349,7 +346,6 @@ export default function WorkoutDetail() {
       return;
     }
 
-    if (loading) return;
     setLoading(true);
 
     try {
