@@ -431,7 +431,7 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
               placeholder="Search exercises..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111]"
+              className="w-full pl-10 pr-4 py-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111] select-text"
             />
           </div>
           <div className="mb-2">
