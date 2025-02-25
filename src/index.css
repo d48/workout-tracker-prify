@@ -67,6 +67,11 @@ input::-webkit-inner-spin-button {
   }
 }
 
+/* Hide default calendar icon */
+input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  display: none;
+}
+
 /* Dark mode transitions */
 .transition-colors {
   transition-property: background-color, border-color, color, fill, stroke;

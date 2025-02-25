@@ -6,7 +6,8 @@ import {
   ExclamationCircleIcon,
   DocumentCheckIcon,
   PencilIcon,
-  EyeIcon
+  EyeIcon,
+  CalendarIcon
 } from '@heroicons/react/24/outline';
 import { supabase } from '../lib/supabase';
 import ExerciseSelector from './ExerciseSelector';
@@ -23,6 +24,7 @@ import {
 import { Database } from '../types/supabase';
 import { useTheme } from '../lib/ThemeContext';
 import ThemeToggle from './ThemeToggle';
+import DatePicker from './DatePicker';
 
 type WorkoutResponse = Database['public']['Tables']['workouts']['Row'] & {
   exercises: (Database['public']['Tables']['exercises']['Row'] & {
@@ -74,6 +76,7 @@ export default function WorkoutDetail() {
   >(null);
   const [editingUrl, setEditingUrl] = useState('');
   const [updateDefault, setUpdateDefault] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   useEffect(() => {
     if (titleInputRef.current) {
@@ -525,14 +528,6 @@ export default function WorkoutDetail() {
     }
   }
 
-  function handleDateChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const newDate = e.target.value;
-    setWorkout((prev) => ({ ...prev, date: newDate }));
-    if (workoutId) {
-      debouncedSaveWorkoutDetails({ date: newDate });
-    }
-  }
-
   function handleNameChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
     const newName = e.target.value;
     setWorkout((prev) => ({ ...prev, name: newName }));
@@ -547,6 +542,10 @@ export default function WorkoutDetail() {
     if (workoutId) {
       debouncedSaveWorkoutDetails({ notes: newNotes });
     }
+  }
+
+  function toggleDatePicker() {
+    setShowDatePicker(!showDatePicker);
   }
 
   useEffect(() => {
@@ -634,12 +633,40 @@ export default function WorkoutDetail() {
               <PencilIcon className="h-5 w-5" />
             </button>
           </div>
-          <input
-            type="datetime-local"
-            value={workout.date}
-            onChange={handleDateChange}
-            className="block w-full bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111] rounded-lg"
-          />
+          <div className="relative">
+            <input
+              type="text"
+              value={format(new Date(workout.date), "MMM d, yyyy 'at' h:mm a")}
+              readOnly
+              onClick={toggleDatePicker}
+              className="block w-full bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111] rounded-lg pr-10 p-3 border dark:border-gray-600 cursor-pointer"
+            />
+            <div 
+              onClick={toggleDatePicker}
+              className="absolute right-2 top-1/2 transform -translate-y-1/2 cursor-pointer"
+            >
+              <CalendarIcon className="h-5 w-5 text-gray-500 dark:text-gray-400" aria-hidden="true" />
+            </div>
+          </div>
+
+          {/* Add a DatePicker component that renders when showDatePicker is true */}
+          {showDatePicker && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+              <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-lg w-full max-w-md">
+                <DatePicker 
+                  selectedDate={new Date(workout.date)} 
+                  onDateChange={(date) => {
+                    const formattedDate = format(date, "yyyy-MM-dd'T'HH:mm");
+                    setWorkout(prev => ({ ...prev, date: formattedDate }));
+                    debouncedSaveWorkoutDetails({ date: formattedDate });
+                    setShowDatePicker(false);
+                  }}
+                  onClose={() => setShowDatePicker(false)}
+                />
+              </div>
+            </div>
+          )}
+          
           <textarea
             value={workout.notes || ''}
             onChange={handleNotesChange}
