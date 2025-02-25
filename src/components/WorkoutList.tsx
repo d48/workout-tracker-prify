@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
   format,
   startOfToday,
@@ -23,9 +23,8 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { findIconByName } from '../lib/exercise-icons';
 import { Database } from '../types/supabase';
 import prifyLogo from '../images/prify-logo.svg';
-import ThemeToggle from './ThemeToggle';
-import { useTheme } from '../lib/ThemeContext';
 import { faTrophy } from '@fortawesome/free-solid-svg-icons';
+import Header from './Header';
 
 type Workout = Database['public']['Tables']['workouts']['Row'] & {
   exercises: Array<{
@@ -78,7 +77,6 @@ export default function WorkoutList() {
   const [searchTerm, setSearchTerm] = useState('');
   const navigate = useNavigate();
   const workoutRefs = useRef<Record<string, HTMLDivElement | null>>({});
-  const { logo } = useTheme();
 
   useEffect(() => {
     fetchWorkouts();
@@ -618,309 +616,264 @@ export default function WorkoutList() {
 
   if (loading) {
     return (
-      <div className="p-4">
-        <div className="fixed top-0 left-0 right-0 bg-white dark:bg-gray-800 shadow-md z-10">
-          <div className="max-w-lg mx-auto px-4 py-4">
-            <div className="flex justify-between items-center">
-              <Link to="/">
-                <img
-                  src={logo}
-                  alt="PRify Workout Tracker"
-                  className="h-16 cursor-pointer"
-                />
-              </Link>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => navigate('/workout/new')}
-                  className="bg-[#dbf111] text-black p-2 rounded-full hover:bg-[#c5d60f] flex items-center gap-1"
-                  title="Add new workout"
-                >
-                  <PlusIcon className="h-6 w-6" />
-                  <span className="hidden sm:inline">Add Workout</span>
-                </button>
-                <ThemeToggle />
-              </div>
-            </div>
-          </div>
-        </div>
+      <>
+        <Header headerType="list" />
         <div className="pt-24 text-center text-gray-500 dark:text-gray-400">
           Loading workouts...
         </div>
-      </div>
+      </>
     );
   }
 
   return (
-    <div className="p-4">
-      <div className="fixed top-0 left-0 right-0 bg-white dark:bg-gray-800 shadow-md z-10">
-        <div className="max-w-lg mx-auto px-4 py-4">
-          <div className="flex justify-between items-center">
-            <Link to="/">
-              <img
-                src={logo}
-                alt="PRIFY Workout Tracker"
-                className="h-16 cursor-pointer"
-              />
-            </Link>
-            <div className="flex items-center gap-2">
+    <>
+      <Header headerType="list" />
+      <div className="p-4">
+        <div className="max-w-lg mx-auto">
+          <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
+            {['all', 'today', 'week', 'month'].map((period) => (
               <button
-                onClick={() => navigate('/workout/new')}
-                className="bg-[#dbf111] text-black p-2 rounded-full hover:bg-[#c5d60f] flex items-center gap-1"
-                title="Add new workout"
+                key={period}
+                onClick={() => {
+                  setFilter(period);
+                  setPage(1);
+                }}
+                className={`px-4 py-2 rounded-full whitespace-nowrap ${
+                  filter === period
+                    ? 'bg-[#dbf111] text-black'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
+                }`}
               >
-                <PlusIcon className="h-6 w-6" />
-                <span className="hidden sm:inline">Add Workout</span>
+                {period === 'all'
+                  ? 'All Time'
+                  : period.charAt(0).toUpperCase() + period.slice(1)}
               </button>
-              <ThemeToggle />
+            ))}
+          </div>
+
+          <div className="mb-6">
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search workouts..."
+              className="w-full p-3 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111]"
+            />
+
+            <div className="ml-2">
+              <button
+                onClick={() => setSearchTerm('')}
+                className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white text-sm underline"
+              >
+                Clear
+              </button>
             </div>
           </div>
-        </div>
-      </div>
 
-      <div className="pt-24 max-w-lg mx-auto">
-        <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
-          {['all', 'today', 'week', 'month'].map((period) => (
-            <button
-              key={period}
-              onClick={() => {
-                setFilter(period);
-                setPage(1);
-              }}
-              className={`px-4 py-2 rounded-full whitespace-nowrap ${
-                filter === period
-                  ? 'bg-[#dbf111] text-black'
-                  : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
-              }`}
-            >
-              {period === 'all'
-                ? 'All Time'
-                : period.charAt(0).toUpperCase() + period.slice(1)}
-            </button>
-          ))}
-        </div>
-
-        <div className="mb-6">
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search workouts..."
-            className="w-full p-3 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111]"
-          />
-
-          <div className="ml-2">
-            <button
-              onClick={() => setSearchTerm('')}
-              className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white text-sm underline"
-            >
-              Clear
-            </button>
-          </div>
-        </div>
-
-        {workouts.length === 0 ? (
-          <WelcomeMessage />
-        ) : filteredWorkouts.length === 0 ? (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 text-center">
-            <div className="mb-6">
-              <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">
-                No workouts match your search term
-              </h2>
-              <p className="text-gray-600 dark:text-gray-300 mb-4">
-                Please try a different search term.
-              </p>
+          {workouts.length === 0 ? (
+            <WelcomeMessage />
+          ) : filteredWorkouts.length === 0 ? (
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 text-center">
+              <div className="mb-6">
+                <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">
+                  No workouts match your search term
+                </h2>
+                <p className="text-gray-600 dark:text-gray-300 mb-4">
+                  Please try a different search term.
+                </p>
+              </div>
             </div>
-          </div>
-        ) : (
-          <>
-            <div className="space-y-12">
-              {filteredWorkouts.map((workout) => {
-                return (
-                  <div
-                    key={workout.id}
-                    ref={(el) => (workoutRefs.current[workout.id] = el)}
-                    onClick={() => navigate(`/workout/${workout.id}`)}
-                    className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                  >
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <h2 className="text-lg font-semibold text-gray-900 dark:text-white hover:text-[#dbf111] dark:hover:text-[#dbf111] transition-colors">
-                          {highlightText(workout.name, searchTerm)}
-                        </h2>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                          {format(new Date(workout.date), 'MMM d, yyyy')}
-                        </p>
-                        {workout.notes && (
-                          <p className="text-sm text-gray-600 dark:text-gray-300 mt-2 whitespace-pre-wrap">
-                            {highlightText(workout.notes, searchTerm)}
+          ) : (
+            <>
+              <div className="space-y-12">
+                {filteredWorkouts.map((workout) => {
+                  return (
+                    <div
+                      key={workout.id}
+                      ref={(el) => (workoutRefs.current[workout.id] = el)}
+                      onClick={() => navigate(`/workout/${workout.id}`)}
+                      className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <h2 className="text-lg font-semibold text-gray-900 dark:text-white hover:text-[#dbf111] dark:hover:text-[#dbf111] transition-colors">
+                            {highlightText(workout.name, searchTerm)}
+                          </h2>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">
+                            {format(new Date(workout.date), 'MMM d, yyyy')}
                           </p>
-                        )}
+                          {workout.notes && (
+                            <p className="text-sm text-gray-600 dark:text-gray-300 mt-2 whitespace-pre-wrap">
+                              {highlightText(workout.notes, searchTerm)}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex gap-5 action-buttons ml-4 pt-2 pr-2">
+                          <button
+                            onClick={(e) => duplicateWorkout(workout, e)}
+                            className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+                            title="Duplicate workout"
+                          >
+                            <DocumentDuplicateIcon className="h-5 w-5" />
+                          </button>
+                          <button
+                            onClick={(e) => shareWorkout(workout, e)}
+                            className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+                            title="Share workout"
+                          >
+                            <ShareIcon className="h-5 w-5" />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteWorkout(workout.id);
+                            }}
+                            className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+                            title="Delete workout"
+                          >
+                            <TrashIcon className="h-5 w-5" />
+                          </button>
+                        </div>
                       </div>
-                      <div className="flex gap-5 action-buttons ml-4 pt-2 pr-2">
-                        <button
-                          onClick={(e) => duplicateWorkout(workout, e)}
-                          className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
-                          title="Duplicate workout"
-                        >
-                          <DocumentDuplicateIcon className="h-5 w-5" />
-                        </button>
-                        <button
-                          onClick={(e) => shareWorkout(workout, e)}
-                          className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
-                          title="Share workout"
-                        >
-                          <ShareIcon className="h-5 w-5" />
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            deleteWorkout(workout.id);
-                          }}
-                          className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
-                          title="Delete workout"
-                        >
-                          <TrashIcon className="h-5 w-5" />
-                        </button>
-                      </div>
+
+                      {workout.exercises?.length > 0 && (
+                        <div className="space-y-2">
+                          {workout.exercises.map((exercise) => {
+                            const stats = calculateExerciseStats(exercise);
+                            const record = globalRecords[exercise.name];
+
+                            // Count occurrences for each metric for this exercise
+                            const repsOccurrences = workouts.filter((w) =>
+                              w.exercises.some(
+                                (ex) =>
+                                  ex.name === exercise.name &&
+                                  calculateExerciseStats(ex).totalReps ===
+                                    record?.totalReps?.value
+                              )
+                            ).length;
+                            const weightOccurrences = workouts.filter((w) =>
+                              w.exercises.some(
+                                (ex) =>
+                                  ex.name === exercise.name &&
+                                  calculateExerciseStats(ex).maxWeight ===
+                                    record?.maxWeight?.value
+                              )
+                            ).length;
+                            const distanceOccurrences = workouts.filter((w) =>
+                              w.exercises.some(
+                                (ex) =>
+                                  ex.name === exercise.name &&
+                                  calculateExerciseStats(ex).totalDistance ===
+                                    record?.totalDistance?.value
+                              )
+                            ).length;
+                            const durationOccurrences = workouts.filter((w) =>
+                              w.exercises.some(
+                                (ex) =>
+                                  ex.name === exercise.name &&
+                                  calculateExerciseStats(ex).totalDuration ===
+                                    record?.totalDuration?.value
+                              )
+                            ).length;
+
+                            // Check if this workout is a new record for any metric
+                            const isNewRecord =
+                              (stats.totalReps &&
+                                record?.totalReps &&
+                                stats.totalReps === record.totalReps.value &&
+                                workout.id === record.totalReps.workoutId &&
+                                repsOccurrences === 1) ||
+                              (stats.maxWeight &&
+                                record?.maxWeight &&
+                                stats.maxWeight === record.maxWeight.value &&
+                                workout.id === record.maxWeight.workoutId &&
+                                weightOccurrences === 1) ||
+                              (stats.totalDistance &&
+                                record?.totalDistance &&
+                                stats.totalDistance ===
+                                  record.totalDistance.value &&
+                                workout.id === record.totalDistance.workoutId &&
+                                distanceOccurrences === 1) ||
+                              (stats.totalDuration &&
+                                record?.totalDuration &&
+                                stats.totalDuration ===
+                                  record.totalDuration.value &&
+                                workout.id === record.totalDuration.workoutId &&
+                                durationOccurrences === 1);
+
+                            return (
+                              <div
+                                key={exercise.id}
+                                className="relative flex items-center gap-3 bg-gray-50 dark:bg-gray-700 p-2 rounded mt-6"
+                              >
+                                <FontAwesomeIcon
+                                  icon={
+                                    findIconByName(
+                                      exercise.icon_name || 'dumbbell'
+                                    ).iconDef
+                                  }
+                                  className="h-4 w-4 text-gray-600 dark:text-gray-300"
+                                />
+                                <div className="inline-flex items-center gap-3">
+                                  <span className="text-sm text-gray-900 dark:text-white">
+                                    {highlightText(exercise.name, searchTerm)}
+                                  </span>
+                                  {isNewRecord && (
+                                    <FontAwesomeIcon
+                                      icon={faTrophy}
+                                      className="h-4 w-4 text-gray-600 dark:text-[#dbf111]"
+                                      title="New record!"
+                                    />
+                                  )}
+                                </div>
+                                <div className="flex gap-3 ml-auto text-xs text-gray-600 dark:text-gray-300">
+                                  {stats.totalReps !== null && (
+                                    <span>
+                                      {highlightText(
+                                        `${stats.totalReps} reps`,
+                                        searchTerm
+                                      )}
+                                    </span>
+                                  )}
+                                  {stats.maxWeight !== null && (
+                                    <span>
+                                      {highlightText(
+                                        `${stats.maxWeight} lbs`,
+                                        searchTerm
+                                      )}
+                                    </span>
+                                  )}
+                                  {stats.totalDistance !== null && (
+                                    <span>
+                                      {highlightText(
+                                        `${stats.totalDistance.toFixed(1)} mi`,
+                                        searchTerm
+                                      )}
+                                    </span>
+                                  )}
+                                  {stats.totalDuration !== null && (
+                                    <span>
+                                      {highlightText(
+                                        `${stats.totalDuration} min`,
+                                        searchTerm
+                                      )}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
-
-                    {workout.exercises?.length > 0 && (
-                      <div className="space-y-2">
-                        {workout.exercises.map((exercise) => {
-                          const stats = calculateExerciseStats(exercise);
-                          const record = globalRecords[exercise.name];
-
-                          // Count occurrences for each metric for this exercise
-                          const repsOccurrences = workouts.filter((w) =>
-                            w.exercises.some(
-                              (ex) =>
-                                ex.name === exercise.name &&
-                                calculateExerciseStats(ex).totalReps ===
-                                  record?.totalReps?.value
-                            )
-                          ).length;
-                          const weightOccurrences = workouts.filter((w) =>
-                            w.exercises.some(
-                              (ex) =>
-                                ex.name === exercise.name &&
-                                calculateExerciseStats(ex).maxWeight ===
-                                  record?.maxWeight?.value
-                            )
-                          ).length;
-                          const distanceOccurrences = workouts.filter((w) =>
-                            w.exercises.some(
-                              (ex) =>
-                                ex.name === exercise.name &&
-                                calculateExerciseStats(ex).totalDistance ===
-                                  record?.totalDistance?.value
-                            )
-                          ).length;
-                          const durationOccurrences = workouts.filter((w) =>
-                            w.exercises.some(
-                              (ex) =>
-                                ex.name === exercise.name &&
-                                calculateExerciseStats(ex).totalDuration ===
-                                  record?.totalDuration?.value
-                            )
-                          ).length;
-
-                          // Check if this workout is a new record for any metric
-                          const isNewRecord =
-                            (stats.totalReps &&
-                              record?.totalReps &&
-                              stats.totalReps === record.totalReps.value &&
-                              workout.id === record.totalReps.workoutId &&
-                              repsOccurrences === 1) ||
-                            (stats.maxWeight &&
-                              record?.maxWeight &&
-                              stats.maxWeight === record.maxWeight.value &&
-                              workout.id === record.maxWeight.workoutId &&
-                              weightOccurrences === 1) ||
-                            (stats.totalDistance &&
-                              record?.totalDistance &&
-                              stats.totalDistance ===
-                                record.totalDistance.value &&
-                              workout.id === record.totalDistance.workoutId &&
-                              distanceOccurrences === 1) ||
-                            (stats.totalDuration &&
-                              record?.totalDuration &&
-                              stats.totalDuration ===
-                                record.totalDuration.value &&
-                              workout.id === record.totalDuration.workoutId &&
-                              durationOccurrences === 1);
-
-                          return (
-                            <div
-                              key={exercise.id}
-                              className="relative flex items-center gap-3 bg-gray-50 dark:bg-gray-700 p-2 rounded mt-6"
-                            >
-                              <FontAwesomeIcon
-                                icon={
-                                  findIconByName(
-                                    exercise.icon_name || 'dumbbell'
-                                  ).iconDef
-                                }
-                                className="h-4 w-4 text-gray-600 dark:text-gray-300"
-                              />
-                              <div className="inline-flex items-center gap-3">
-                                <span className="text-sm text-gray-900 dark:text-white">
-                                  {highlightText(exercise.name, searchTerm)}
-                                </span>
-                                {isNewRecord && (
-                                  <FontAwesomeIcon
-                                    icon={faTrophy}
-                                    className="h-4 w-4 text-gray-600 dark:text-[#dbf111]"
-                                    title="New record!"
-                                  />
-                                )}
-                              </div>
-                              <div className="flex gap-3 ml-auto text-xs text-gray-600 dark:text-gray-300">
-                                {stats.totalReps !== null && (
-                                  <span>
-                                    {highlightText(
-                                      `${stats.totalReps} reps`,
-                                      searchTerm
-                                    )}
-                                  </span>
-                                )}
-                                {stats.maxWeight !== null && (
-                                  <span>
-                                    {highlightText(
-                                      `${stats.maxWeight} lbs`,
-                                      searchTerm
-                                    )}
-                                  </span>
-                                )}
-                                {stats.totalDistance !== null && (
-                                  <span>
-                                    {highlightText(
-                                      `${stats.totalDistance.toFixed(1)} mi`,
-                                      searchTerm
-                                    )}
-                                  </span>
-                                )}
-                                {stats.totalDuration !== null && (
-                                  <span>
-                                    {highlightText(
-                                      `${stats.totalDuration} min`,
-                                      searchTerm
-                                    )}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-            <Pagination />
-          </>
-        )}
+                  );
+                })}
+              </div>
+              <Pagination />
+            </>
+          )}
+        </div>
       </div>
-    </div>
+    </>
   );
 }

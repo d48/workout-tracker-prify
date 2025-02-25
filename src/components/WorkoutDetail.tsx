@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import {
   PlusIcon,
   TrashIcon,
@@ -22,9 +22,8 @@ import {
   Set
 } from '../types/workout';
 import { Database } from '../types/supabase';
-import { useTheme } from '../lib/ThemeContext';
-import ThemeToggle from './ThemeToggle';
 import DatePicker from './DatePicker';
+import Header from './Header';
 
 type WorkoutResponse = Database['public']['Tables']['workouts']['Row'] & {
   exercises: (Database['public']['Tables']['exercises']['Row'] & {
@@ -63,7 +62,6 @@ const SORT_OPTIONS = {
 export default function WorkoutDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { logo } = useTheme();
   const [workout, setWorkout] = useState<WorkoutFormData>({
     name: 'New Workout',
     date: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
@@ -133,29 +131,36 @@ export default function WorkoutDetail() {
   );
 
   const debouncedSaveWorkoutDetails = useCallback(
-    debounce(async (updates: Partial<{ name: string; date: string; notes: string }>) => {
-      if (!workoutId) return;
-      
-      try {
-        // Convert date string to ISO format if it exists
-        const formattedUpdates: Record<string, any> = {};
-        if (updates.name !== undefined) formattedUpdates.name = updates.name;
-        if (updates.notes !== undefined) formattedUpdates.notes = updates.notes || null;
-        if (updates.date !== undefined) formattedUpdates.date = new Date(updates.date).toISOString();
-        
-        const { error } = await supabase
-          .from('workouts')
-          .update(formattedUpdates)
-          .eq('id', workoutId);
+    debounce(
+      async (
+        updates: Partial<{ name: string; date: string; notes: string }>
+      ) => {
+        if (!workoutId) return;
 
-        if (error) throw error;
-      } catch (error) {
-        console.error('Error updating workout details:', error);
-        if (error instanceof Error) {
-          setError(error.message);
+        try {
+          // Convert date string to ISO format if it exists
+          const formattedUpdates: Record<string, any> = {};
+          if (updates.name !== undefined) formattedUpdates.name = updates.name;
+          if (updates.notes !== undefined)
+            formattedUpdates.notes = updates.notes || null;
+          if (updates.date !== undefined)
+            formattedUpdates.date = new Date(updates.date).toISOString();
+
+          const { error } = await supabase
+            .from('workouts')
+            .update(formattedUpdates)
+            .eq('id', workoutId);
+
+          if (error) throw error;
+        } catch (error) {
+          console.error('Error updating workout details:', error);
+          if (error instanceof Error) {
+            setError(error.message);
+          }
         }
-      }
-    }, 500),
+      },
+      500
+    ),
     [workoutId]
   );
 
@@ -375,15 +380,23 @@ export default function WorkoutDetail() {
       // If "Update default exercise URL" is checked, and this exercise is still default,
       // convert it in place to a custom exercise.
       if (updateDefault) {
-        const { data: { user } } = await supabase.auth.getUser();
+        const {
+          data: { user }
+        } = await supabase.auth.getUser();
         if (user) {
-          const exerciseItem = workout.exercises.find((ex) => ex.id === exerciseId);
+          const exerciseItem = workout.exercises.find(
+            (ex) => ex.id === exerciseId
+          );
           if (exerciseItem && !(exerciseItem as any).is_custom) {
             const newExerciseName = exerciseItem.name; // Keep the same name.
             // Update the exercise record in place to mark it as custom.
             const { error: customUpdateError } = await supabase
               .from('exercises')
-              .update({ is_custom: true, sample_url: editingUrl || null, name: newExerciseName })
+              .update({
+                is_custom: true,
+                sample_url: editingUrl || null,
+                name: newExerciseName
+              })
               .eq('id', exerciseId);
             if (customUpdateError) throw customUpdateError;
 
@@ -392,7 +405,12 @@ export default function WorkoutDetail() {
               ...prev,
               exercises: prev.exercises.map((ex) =>
                 ex.id === exerciseId
-                  ? { ...ex, is_custom: true, sample_url: editingUrl || null, name: newExerciseName }
+                  ? {
+                      ...ex,
+                      is_custom: true,
+                      sample_url: editingUrl || null,
+                      name: newExerciseName
+                    }
                   : ex
               )
             }));
@@ -601,414 +619,165 @@ export default function WorkoutDetail() {
 
   if (loading) {
     return (
-      <div className="p-4">
-        <div className="fixed top-0 left-0 right-0 bg-white dark:bg-gray-800 shadow-md z-10">
-          <div className="max-w-lg mx-auto px-4 py-4">
-            <div className="flex justify-between items-center">
-              <Link to="/">
-                <img
-                  src={logo}
-                  alt="PRIFY Workout Tracker"
-                  className="h-16 cursor-pointer"
-                />
-              </Link>
-              <ThemeToggle />
-            </div>
-          </div>
-        </div>
+      <>
+        <Header headerType="detail" />
         <div className="pt-24 text-center text-gray-500 dark:text-gray-400">
           Loading workout...
         </div>
-      </div>
+      </>
     );
   }
 
   return (
-    <div className="p-4 pb-32">
-      <div className="fixed top-0 left-0 right-0 bg-white dark:bg-gray-800 shadow-md z-10">
-        <div className="max-w-lg mx-auto px-4 py-4">
-          <div className="flex justify-between items-center">
-            <Link to="/">
-              <img
-                src={logo}
-                alt="PRify Workout Tracker"
-                className="h-16 cursor-pointer"
-              />
-            </Link>
-            <ThemeToggle />
-          </div>
-        </div>
-      </div>
-
-      <div className="pt-24 max-w-lg mx-auto">
-        {error && (
-          <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 flex items-center gap-2">
-            <ExclamationCircleIcon className="h-5 w-5 text-red-500" />
-            <p className="text-red-700 dark:text-red-400">{error}</p>
-            <button
-              onClick={() => {
-                setRetryCount(0);
-                setError('');
-                fetchWorkout();
-              }}
-              className="ml-auto text-sm text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300"
-            >
-              Retry
-            </button>
-          </div>
-        )}
-
-        <div className="mb-6 space-y-8">
-          <div className="relative group">
-            <textarea
-              ref={titleInputRef}
-              value={workout.name}
-              onChange={handleNameChange}
-              className="text-2xl font-bold w-full bg-transparent dark:text-white pr-8 focus:bg-white dark:focus:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-[#dbf111] rounded-lg transition-colors p-2 resize-none"
-              placeholder="Workout Name"
-              rows={1}
-            />
-            <button
-              onClick={() => titleInputRef.current?.focus()}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-            >
-              <PencilIcon className="h-5 w-5" />
-            </button>
-          </div>
-          <div className="relative">
-            <input
-              type="text"
-              value={format(new Date(workout.date), "MMM d, yyyy 'at' h:mm a")}
-              readOnly
-              onClick={toggleDatePicker}
-              className="block w-full bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111] rounded-lg pr-10 p-3 border dark:border-gray-600 cursor-pointer"
-            />
-            <div 
-              onClick={toggleDatePicker}
-              className="absolute right-2 top-1/2 transform -translate-y-1/2 cursor-pointer"
-            >
-              <CalendarIcon className="h-5 w-5 text-gray-500 dark:text-gray-400" aria-hidden="true" />
+    <>
+      <Header headerType="detail" />
+      <div className="p-4 pb-32">
+        <div className="max-w-lg mx-auto">
+          {error && (
+            <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 flex items-center gap-2">
+              <ExclamationCircleIcon className="h-5 w-5 text-red-500" />
+              <p className="text-red-700 dark:text-red-400">{error}</p>
+              <button
+                onClick={() => {
+                  setRetryCount(0);
+                  setError('');
+                  fetchWorkout();
+                }}
+                className="ml-auto text-sm text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300"
+              >
+                Retry
+              </button>
             </div>
-          </div>
+          )}
 
-          {/* Add a DatePicker component that renders when showDatePicker is true */}
-          {showDatePicker && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-              <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-lg w-full max-w-md">
-                <DatePicker 
-                  selectedDate={new Date(workout.date)} 
-                  onDateChange={(date) => {
-                    const formattedDate = format(date, "yyyy-MM-dd'T'HH:mm");
-                    setWorkout(prev => ({ ...prev, date: formattedDate }));
-                    debouncedSaveWorkoutDetails({ date: formattedDate });
-                    setShowDatePicker(false);
-                  }}
-                  onClose={() => setShowDatePicker(false)}
+          <div className="mb-6 space-y-8">
+            <div className="relative group">
+              <textarea
+                ref={titleInputRef}
+                value={workout.name}
+                onChange={handleNameChange}
+                className="text-2xl font-bold w-full bg-transparent dark:text-white pr-8 focus:bg-white dark:focus:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-[#dbf111] rounded-lg transition-colors p-2 resize-none"
+                placeholder="Workout Name"
+                rows={1}
+              />
+              <button
+                onClick={() => titleInputRef.current?.focus()}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+              >
+                <PencilIcon className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="relative">
+              <input
+                type="text"
+                value={format(
+                  new Date(workout.date),
+                  "MMM d, yyyy 'at' h:mm a"
+                )}
+                readOnly
+                onClick={toggleDatePicker}
+                className="block w-full bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111] rounded-lg pr-10 p-3 border dark:border-gray-600 cursor-pointer"
+              />
+              <div
+                onClick={toggleDatePicker}
+                className="absolute right-2 top-1/2 transform -translate-y-1/2 cursor-pointer"
+              >
+                <CalendarIcon
+                  className="h-5 w-5 text-gray-500 dark:text-gray-400"
+                  aria-hidden="true"
                 />
               </div>
             </div>
-          )}
-          
-          <div className="flex flex-col space-y-1 mt-8 mb-8">
-            <textarea
-              value={workout.notes || ''}
-              onChange={handleNotesChange}
-              placeholder="Add workout notes..."
-              className="w-full p-3 border dark:border-gray-600 rounded-lg resize-none h-24 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111]"
-            />
-            <div className="ml-2">
-              <button
-                onClick={clearWorkoutNotes}
-                className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white text-sm underline"
-              >
-                Clear
-              </button>
+
+            {/* Add a DatePicker component that renders when showDatePicker is true */}
+            {showDatePicker && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+                <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-lg w-full max-w-md">
+                  <DatePicker
+                    selectedDate={new Date(workout.date)}
+                    onDateChange={(date) => {
+                      const formattedDate = format(date, "yyyy-MM-dd'T'HH:mm");
+                      setWorkout((prev) => ({ ...prev, date: formattedDate }));
+                      debouncedSaveWorkoutDetails({ date: formattedDate });
+                      setShowDatePicker(false);
+                    }}
+                    onClose={() => setShowDatePicker(false)}
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="flex flex-col space-y-1 mt-8 mb-8">
+              <textarea
+                value={workout.notes || ''}
+                onChange={handleNotesChange}
+                placeholder="Add workout notes..."
+                className="w-full p-3 border dark:border-gray-600 rounded-lg resize-none h-24 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111]"
+              />
+              <div className="ml-2">
+                <button
+                  onClick={clearWorkoutNotes}
+                  className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white text-sm underline"
+                >
+                  Clear
+                </button>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Exercises</h2>
-          <div className="flex items-center space-x-2">
-            <label htmlFor="sort" className="text-sm text-gray-600 dark:text-gray-300">Sort by:</label>
-            <select
-              id="sort"
-              value={sortOption}
-              onChange={(e) => handleSortChange(e.target.value)}
-              className="p-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111]"
-            >
-              <option value={SORT_OPTIONS.DEFAULT}>Default</option>
-              <option value={SORT_OPTIONS.NAME_ASC}>Name A - Z</option>
-              <option value={SORT_OPTIONS.NAME_DESC}>Name Z - A</option>
-            </select>
-          </div>
-        </div>
-
-        <div className="space-y-12">
-          {sortExercises(workout.exercises).map((exercise) => {
-            const iconInfo = findIconByName(exercise.icon_name || 'dumbbell');
-            return (
-              <div
-                key={exercise.id}
-                className="bg-white dark:bg-gray-800 rounded-lg shadow p-4"
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+              Exercises
+            </h2>
+            <div className="flex items-center space-x-2">
+              <label
+                htmlFor="sort"
+                className="text-sm text-gray-600 dark:text-gray-300"
               >
-                <div className="flex justify-between items-center mb-4">
-                  <div className="flex items-center gap-2 flex-1">
-                    <FontAwesomeIcon
-                      icon={iconInfo.iconDef}
-                      className="h-6 w-6 text-gray-600 dark:text-gray-300"
-                    />
-                    <input
-                      type="text"
-                      value={exercise.name}
-                      onChange={async (e) => {
-                        const newName = e.target.value;
-                        const newIconName = findIconByName(
-                          exercise.icon_name || 'dumbbell'
-                        ).name;
-                        const { error } = await supabase
-                          .from('exercises')
-                          .update({
-                            name: newName,
-                            icon_name: newIconName
-                          })
-                          .eq('id', exercise.id);
-                        if (!error) {
-                          setWorkout((prev) => ({
-                            ...prev,
-                            exercises: prev.exercises.map((ex) =>
-                              ex.id === exercise.id
-                                ? {
-                                    ...ex,
-                                    name: newName,
-                                    icon_name: newIconName
-                                  }
-                                : ex
-                            )
-                          }));
-                        }
-                      }}
-                      className="text-lg font-semibold flex-1 bg-transparent dark:text-white focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111] rounded-lg"
-                    />
-                  </div>
-                  <button
-                    onClick={() => deleteExercise(exercise.id)}
-                    className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white p-1"
-                    title="Delete exercise"
-                  >
-                    <TrashIcon className="h-5 w-5" />
-                  </button>
-                </div>
+                Sort by:
+              </label>
+              <select
+                id="sort"
+                value={sortOption}
+                onChange={(e) => handleSortChange(e.target.value)}
+                className="p-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111]"
+              >
+                <option value={SORT_OPTIONS.DEFAULT}>Default</option>
+                <option value={SORT_OPTIONS.NAME_ASC}>Name A - Z</option>
+                <option value={SORT_OPTIONS.NAME_DESC}>Name Z - A</option>
+              </select>
+            </div>
+          </div>
 
-                {/* Sample URL Section Positioned Just Below the Title */}
-                <div className="mb-4">
-                  {editingUrlExerciseId === exercise.id ? (
-                    <div className="flex flex-col gap-2">
-                      <input
-                        type="url"
-                        value={editingUrl}
-                        onChange={(e) => {
-                          setEditingUrl(e.target.value);
-                          // Clear the error when user starts typing:
-                          if (error === 'Please enter a valid URL.') setError('');
-                        }}
-                        placeholder="https://example.com/sample"
-                        className="p-2 border dark:border-gray-600 rounded"
-                      />
-                      {/* Show error message if the sample URL is invalid */}
-                      {error && error.includes('valid URL') && (
-                        <span className="text-xs text-red-500">
-                          Please enter a valid URL. Example: https://example.com/sample
-                        </span>
-                      )}
-                      <label className="text-sm text-gray-600 dark:text-gray-300">
-                        <input
-                          type="checkbox"
-                          checked={updateDefault}
-                          onChange={(e) => setUpdateDefault(e.target.checked)}
-                          className="accent-[#dbf111] mr-1"
-                        />
-                        Update default exercise URL
-                      </label>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => saveSampleUrl(exercise.id)}
-                          className="px-3 py-1 bg-[#dbf111] text-black rounded shadow hover:bg-[#c5d60f] text-xs"
-                        >
-                          Save URL
-                        </button>
-                        <button
-                          onClick={cancelSampleUrlEdit}
-                          className="px-3 py-1 border border-gray-300 text-gray-600 dark:border-gray-500 dark:text-gray-300 rounded hover:bg-gray-200 hover:text-gray-800 dark:hover:bg-gray-700 dark:hover:text-gray-100 text-xs"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-4 mb-8 mt-6">
-                      {exercise.sample_url ? (
-                        <>
-                          <a
-                            href={exercise.sample_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white text-sm underline"
-                          >
-                            <EyeIcon className="h-5 w-5" />
-                            <span className="ml-2">
-                              How to do this exercise
-                            </span>
-                          </a>
-                          <button
-                            onClick={() =>
-                              startSampleUrlEdit(
-                                exercise.id,
-                                exercise.sample_url ?? ''
-                              )
-                            }
-                            className="text-sm text-gray-500 hover:underline ml-4"
-                          >
-                            <PencilIcon className="h-5 w-5" title="Edit URL" />
-                          </button>
-                        </>
-                      ) : (
-                        <button
-                          onClick={() => startSampleUrlEdit(exercise.id, '')}
-                          className="flex mt-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white text-sm underline"
-                        >
-                          <span className="ml-2">Set URL for "How to do this exercise"?</span>
-                          <PencilIcon
-                            className="ml-4 h-5 w-5"
-                            title="Set sample URL"
-                          />
-                        </button>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex flex-col space-y-1 mt-8 mb-8">
-                  <textarea
-                    value={exercise.notes || ''}
-                    onChange={(e) =>
-                      handleExerciseNotesChange(exercise.id, e.target.value)
-                    }
-                    placeholder="Add notes for this exercise..."
-                    className="w-full p-2 border dark:border-gray-600 rounded-lg text-sm resize-none h-20 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111]"
-                  />
-                  <div className="ml-2">
-                    <button
-                      onClick={() => clearExerciseNotes(exercise.id)}
-                      className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white text-sm underline"
-                    >
-                      Clear
-                    </button>
-                  </div>
-                </div>
-
-                <ExerciseStats exercise={exercise} />
-
-                <div className="mt-4 space-y-4">
-                  <div className="grid grid-cols-[auto,1fr,1fr,1fr,1fr,auto] gap-4 px-2">
-                    <div className="w-5"></div>
-                    <div className="text-sm font-medium text-gray-600 dark:text-gray-300">
-                      Reps
-                    </div>
-                    <div className="text-sm font-medium text-gray-600 dark:text-gray-300">
-                      Weight (lbs)
-                    </div>
-                    <div className="text-sm font-medium text-gray-600 dark:text-gray-300">
-                      Distance (mi)
-                    </div>
-                    <div className="text-sm font-medium text-gray-600 dark:text-gray-300">
-                      Duration (min)
-                    </div>
-                    <div className="w-5"></div>
-                  </div>
-
-                  {exercise.sets?.map((set) => (
-                    <div
-                      key={set.id}
-                      className="grid grid-cols-[auto,1fr,1fr,1fr,1fr,auto] gap-4 items-center"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={set.completed}
-                        onChange={(e) =>
-                          handleSetChange(exercise.id, set.id, {
-                            completed: e.target.checked
-                          })
-                        }
-                        className="checkbox-custom"
+          <div className="space-y-12">
+            {sortExercises(workout.exercises).map((exercise) => {
+              const iconInfo = findIconByName(exercise.icon_name || 'dumbbell');
+              return (
+                <div
+                  key={exercise.id}
+                  className="bg-white dark:bg-gray-800 rounded-lg shadow p-4"
+                >
+                  <div className="flex justify-between items-center mb-4">
+                    <div className="flex items-center gap-2 flex-1">
+                      <FontAwesomeIcon
+                        icon={iconInfo.iconDef}
+                        className="h-6 w-6 text-gray-600 dark:text-gray-300"
                       />
                       <input
-                        type="number"
-                        step="any"
-                        value={set.reps ?? ''}
-                        onChange={(e) =>
-                          handleSetChange(exercise.id, set.id, {
-                            reps:
-                              e.target.value === ''
-                                ? null
-                                : Number(e.target.value)
-                          })
-                        }
-                        className="w-full p-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111]"
-                        placeholder="0"
-                      />
-                      <input
-                        type="number"
-                        step="any"
-                        value={set.weight ?? ''}
-                        onChange={(e) =>
-                          handleSetChange(exercise.id, set.id, {
-                            weight:
-                              e.target.value === ''
-                                ? null
-                                : Number(e.target.value)
-                          })
-                        }
-                        className="w-full p-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111]"
-                        placeholder="0"
-                      />
-                      <input
-                        type="number"
-                        step="any"
-                        value={set.distance ?? ''}
-                        onChange={(e) =>
-                          handleSetChange(exercise.id, set.id, {
-                            distance:
-                              e.target.value === ''
-                                ? null
-                                : Number(e.target.value)
-                          })
-                        }
-                        className="w-full p-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111]"
-                        placeholder="0"
-                      />
-                      <input
-                        type="number"
-                        step="any"
-                        value={set.duration ?? ''}
-                        onChange={(e) =>
-                          handleSetChange(exercise.id, set.id, {
-                            duration:
-                              e.target.value === ''
-                                ? null
-                                : Number(e.target.value)
-                          })
-                        }
-                        className="w-full p-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111]"
-                        placeholder="0"
-                      />
-                      <button
-                        onClick={async () => {
+                        type="text"
+                        value={exercise.name}
+                        onChange={async (e) => {
+                          const newName = e.target.value;
+                          const newIconName = findIconByName(
+                            exercise.icon_name || 'dumbbell'
+                          ).name;
                           const { error } = await supabase
-                            .from('sets')
-                            .delete()
-                            .eq('id', set.id);
-
+                            .from('exercises')
+                            .update({
+                              name: newName,
+                              icon_name: newIconName
+                            })
+                            .eq('id', exercise.id);
                           if (!error) {
                             setWorkout((prev) => ({
                               ...prev,
@@ -1016,72 +785,316 @@ export default function WorkoutDetail() {
                                 ex.id === exercise.id
                                   ? {
                                       ...ex,
-                                      sets: ex.sets.filter(
-                                        (s) => s.id !== set.id
-                                      )
+                                      name: newName,
+                                      icon_name: newIconName
                                     }
                                   : ex
                               )
                             }));
                           }
                         }}
-                        className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+                        className="text-lg font-semibold flex-1 bg-transparent dark:text-white focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111] rounded-lg"
+                      />
+                    </div>
+                    <button
+                      onClick={() => deleteExercise(exercise.id)}
+                      className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white p-1"
+                      title="Delete exercise"
+                    >
+                      <TrashIcon className="h-5 w-5" />
+                    </button>
+                  </div>
+
+                  {/* Sample URL Section Positioned Just Below the Title */}
+                  <div className="mb-4">
+                    {editingUrlExerciseId === exercise.id ? (
+                      <div className="flex flex-col gap-2">
+                        <input
+                          type="url"
+                          value={editingUrl}
+                          onChange={(e) => {
+                            setEditingUrl(e.target.value);
+                            // Clear the error when user starts typing:
+                            if (error === 'Please enter a valid URL.')
+                              setError('');
+                          }}
+                          placeholder="https://example.com/sample"
+                          className="p-2 border dark:border-gray-600 rounded"
+                        />
+                        {/* Show error message if the sample URL is invalid */}
+                        {error && error.includes('valid URL') && (
+                          <span className="text-xs text-red-500">
+                            Please enter a valid URL. Example:
+                            https://example.com/sample
+                          </span>
+                        )}
+                        <label className="text-sm text-gray-600 dark:text-gray-300">
+                          <input
+                            type="checkbox"
+                            checked={updateDefault}
+                            onChange={(e) => setUpdateDefault(e.target.checked)}
+                            className="accent-[#dbf111] mr-1"
+                          />
+                          Update default exercise URL
+                        </label>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => saveSampleUrl(exercise.id)}
+                            className="px-3 py-1 bg-[#dbf111] text-black rounded shadow hover:bg-[#c5d60f] text-xs"
+                          >
+                            Save URL
+                          </button>
+                          <button
+                            onClick={cancelSampleUrlEdit}
+                            className="px-3 py-1 border border-gray-300 text-gray-600 dark:border-gray-500 dark:text-gray-300 rounded hover:bg-gray-200 hover:text-gray-800 dark:hover:bg-gray-700 dark:hover:text-gray-100 text-xs"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-4 mb-8 mt-6">
+                        {exercise.sample_url ? (
+                          <>
+                            <a
+                              href={exercise.sample_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white text-sm underline"
+                            >
+                              <EyeIcon className="h-5 w-5" />
+                              <span className="ml-2">
+                                How to do this exercise
+                              </span>
+                            </a>
+                            <button
+                              onClick={() =>
+                                startSampleUrlEdit(
+                                  exercise.id,
+                                  exercise.sample_url ?? ''
+                                )
+                              }
+                              className="text-sm text-gray-500 hover:underline ml-4"
+                            >
+                              <PencilIcon
+                                className="h-5 w-5"
+                                title="Edit URL"
+                              />
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            onClick={() => startSampleUrlEdit(exercise.id, '')}
+                            className="flex mt-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white text-sm underline"
+                          >
+                            <span className="ml-2">
+                              Set URL for "How to do this exercise"?
+                            </span>
+                            <PencilIcon
+                              className="ml-4 h-5 w-5"
+                              title="Set sample URL"
+                            />
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex flex-col space-y-1 mt-8 mb-8">
+                    <textarea
+                      value={exercise.notes || ''}
+                      onChange={(e) =>
+                        handleExerciseNotesChange(exercise.id, e.target.value)
+                      }
+                      placeholder="Add notes for this exercise..."
+                      className="w-full p-2 border dark:border-gray-600 rounded-lg text-sm resize-none h-20 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111]"
+                    />
+                    <div className="ml-2">
+                      <button
+                        onClick={() => clearExerciseNotes(exercise.id)}
+                        className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white text-sm underline"
                       >
-                        <TrashIcon className="h-5 w-5" />
+                        Clear
                       </button>
                     </div>
-                  ))}
+                  </div>
+
+                  <ExerciseStats exercise={exercise} />
+
+                  <div className="mt-4 space-y-4">
+                    <div className="grid grid-cols-[auto,1fr,1fr,1fr,1fr,auto] gap-4 px-2">
+                      <div className="w-5"></div>
+                      <div className="text-sm font-medium text-gray-600 dark:text-gray-300">
+                        Reps
+                      </div>
+                      <div className="text-sm font-medium text-gray-600 dark:text-gray-300">
+                        Weight (lbs)
+                      </div>
+                      <div className="text-sm font-medium text-gray-600 dark:text-gray-300">
+                        Distance (mi)
+                      </div>
+                      <div className="text-sm font-medium text-gray-600 dark:text-gray-300">
+                        Duration (min)
+                      </div>
+                      <div className="w-5"></div>
+                    </div>
+
+                    {exercise.sets?.map((set) => (
+                      <div
+                        key={set.id}
+                        className="grid grid-cols-[auto,1fr,1fr,1fr,1fr,auto] gap-4 items-center"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={set.completed}
+                          onChange={(e) =>
+                            handleSetChange(exercise.id, set.id, {
+                              completed: e.target.checked
+                            })
+                          }
+                          className="checkbox-custom"
+                        />
+                        <input
+                          type="number"
+                          step="any"
+                          value={set.reps ?? ''}
+                          onChange={(e) =>
+                            handleSetChange(exercise.id, set.id, {
+                              reps:
+                                e.target.value === ''
+                                  ? null
+                                  : Number(e.target.value)
+                            })
+                          }
+                          className="w-full p-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111]"
+                          placeholder="0"
+                        />
+                        <input
+                          type="number"
+                          step="any"
+                          value={set.weight ?? ''}
+                          onChange={(e) =>
+                            handleSetChange(exercise.id, set.id, {
+                              weight:
+                                e.target.value === ''
+                                  ? null
+                                  : Number(e.target.value)
+                            })
+                          }
+                          className="w-full p-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111]"
+                          placeholder="0"
+                        />
+                        <input
+                          type="number"
+                          step="any"
+                          value={set.distance ?? ''}
+                          onChange={(e) =>
+                            handleSetChange(exercise.id, set.id, {
+                              distance:
+                                e.target.value === ''
+                                  ? null
+                                  : Number(e.target.value)
+                            })
+                          }
+                          className="w-full p-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111]"
+                          placeholder="0"
+                        />
+                        <input
+                          type="number"
+                          step="any"
+                          value={set.duration ?? ''}
+                          onChange={(e) =>
+                            handleSetChange(exercise.id, set.id, {
+                              duration:
+                                e.target.value === ''
+                                  ? null
+                                  : Number(e.target.value)
+                            })
+                          }
+                          className="w-full p-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111]"
+                          placeholder="0"
+                        />
+                        <button
+                          onClick={async () => {
+                            const { error } = await supabase
+                              .from('sets')
+                              .delete()
+                              .eq('id', set.id);
+
+                            if (!error) {
+                              setWorkout((prev) => ({
+                                ...prev,
+                                exercises: prev.exercises.map((ex) =>
+                                  ex.id === exercise.id
+                                    ? {
+                                        ...ex,
+                                        sets: ex.sets.filter(
+                                          (s) => s.id !== set.id
+                                        )
+                                      }
+                                    : ex
+                                )
+                              }));
+                            }
+                          }}
+                          className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+                        >
+                          <TrashIcon className="h-5 w-5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+
+                  <button
+                    onClick={() => addSet(exercise.id)}
+                    className="mt-4 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white text-sm underline"
+                  >
+                    Add Set
+                  </button>
                 </div>
-
-                <button
-                  onClick={() => addSet(exercise.id)}
-                  className="mt-4 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white text-sm underline"
-                >
-                  Add Set
-                </button>
-              </div>
-            );
-          })}
-        </div>
-
-        {!loading && workout.exercises.length === 0 && (
-          <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-8 text-center">
-            <p className="text-gray-600 dark:text-gray-300 mb-2">
-              No exercises added yet
-            </p>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              Click the plus button to add your first exercise
-            </p>
+              );
+            })}
           </div>
-        )}
 
-        <div className="fixed bottom-20 left-0 right-0 flex justify-between items-center px-4 pb-4 max-w-lg mx-auto">
-          <button
-            onClick={saveWorkout}
-            disabled={loading}
-            className="bg-[#dbf111] text-black px-6 py-3 rounded-lg shadow-lg hover:bg-[#c5d60f] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-          >
-            <DocumentCheckIcon className="h-5 w-5" />
-            Save
-          </button>
-          <button
-            onClick={() => setShowExerciseSelector(true)}
-            disabled={loading}
-            className="bg-[#dbf111] text-black px-6 py-3 rounded-lg shadow-lg hover:bg-[#c5d60f] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-            title="Add exercise"
-          >
-            <PlusIcon className="h-6 w-6" />
-            Add Exercise
-          </button>
+          {!loading && workout.exercises.length === 0 && (
+            <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-8 text-center">
+              <p className="text-gray-600 dark:text-gray-300 mb-2">
+                No exercises added yet
+              </p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Click the plus button to add your first exercise
+              </p>
+            </div>
+          )}
+
+          <div className="fixed bottom-20 left-0 right-0 flex justify-between items-center px-4 pb-4 max-w-lg mx-auto">
+            <button
+              onClick={saveWorkout}
+              disabled={loading}
+              className="bg-[#dbf111] text-black px-6 py-3 rounded-lg shadow-lg hover:bg-[#c5d60f] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              <DocumentCheckIcon className="h-5 w-5" />
+              Save
+            </button>
+            <button
+              onClick={() => setShowExerciseSelector(true)}
+              disabled={loading}
+              className="bg-[#dbf111] text-black px-6 py-3 rounded-lg shadow-lg hover:bg-[#c5d60f] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              title="Add exercise"
+            >
+              <PlusIcon className="h-6 w-6" />
+              Add Exercise
+            </button>
+          </div>
+
+          {showExerciseSelector && (
+            <ExerciseSelector
+              onSelect={handleExerciseSelect}
+              onClose={() => setShowExerciseSelector(false)}
+            />
+          )}
         </div>
-
-        {showExerciseSelector && (
-          <ExerciseSelector
-            onSelect={handleExerciseSelect}
-            onClose={() => setShowExerciseSelector(false)}
-          />
-        )}
       </div>
-    </div>
+    </>
   );
 }

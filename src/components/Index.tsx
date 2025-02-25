@@ -10,7 +10,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-      <Header />
+      <Header headerType="index" />
       
       {/* Hero Section */}
       <section ref={heroRef} className="pt-32 pb-16 px-8">

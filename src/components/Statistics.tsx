@@ -31,6 +31,7 @@ import { Database } from '../types/supabase';
 import { Link } from 'react-router-dom';
 import { useTheme } from '../lib/ThemeContext';
 import ThemeToggle from './ThemeToggle';
+import Header from './Header';
 
 ChartJS.register(
   CategoryScale,
@@ -301,164 +302,169 @@ export default function Statistics() {
   };
 
   return (
-    <div className="p-4 pb-24">
-      <div className="fixed top-0 left-0 right-0 bg-white dark:bg-gray-800 shadow-md z-10">
-        <div className="max-w-lg mx-auto px-4 py-4">
-          <div className="flex justify-between items-center">
-            <Link to="/">
-              <img 
-                src={logo}
-                alt="PRify Workout Tracker" 
-                className="h-16 cursor-pointer"
-              />
-            </Link>
-            <ThemeToggle />
-          </div>
-        </div>
-      </div>
-
-      <div className="pt-24">
-        <h1 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white">Statistics</h1>
-
-        <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
-          {(['today', 'week', 'month', 'quarter', 'year'] as const).map((p) => (
-            <button
-              key={p}
-              onClick={() => setPeriod(p)}
-              className={`px-4 py-2 rounded-full whitespace-nowrap ${
-                period === p 
-                  ? 'bg-[#dbf111] text-black' 
-                  : 'bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300'
-              }`}
-            >
-              {p.charAt(0).toUpperCase() + p.slice(1)}
-            </button>
-          ))}
-        </div>
-
-        <div className="grid grid-cols-3 gap-4 mb-8">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 text-center">
-            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-              {stats.totalWorkouts}
-            </div>
-            <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">Workouts</div>
-          </div>
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 text-center">
-            <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-              {stats.totalExercises}
-            </div>
-            <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">Exercises</div>
-          </div>
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 text-center">
-            <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-              {stats.completionRate}%
-            </div>
-            <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">Completion</div>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 mb-8">
-          <div className="mb-4">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Exercise Performance
-            </h2>
-            <div className="flex gap-2 mt-2">
-              <button
-                onClick={() => setSelectedMetric('reps')}
-                className={`px-3 py-1 rounded-full text-sm ${
-                  selectedMetric === 'reps'
-                    ? 'bg-[#dbf111] text-black'
-                    : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
-                }`}
-              >
-                Reps
-              </button>
-              <button
-                onClick={() => setSelectedMetric('weight')}
-                className={`px-3 py-1 rounded-full text-sm ${
-                  selectedMetric === 'weight'
-                    ? 'bg-[#dbf111] text-black'
-                    : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
-                }`}
-              >
-                Weight
-              </button>
-              <button
-                onClick={() => setSelectedMetric('distance')}
-                className={`px-3 py-1 rounded-full text-sm ${
-                  selectedMetric === 'distance'
-                    ? 'bg-[#dbf111] text-black'
-                    : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
-                }`}
-              >
-                Distance
-              </button>
-              <button
-                onClick={() => setSelectedMetric('duration')}
-                className={`px-3 py-1 rounded-full text-sm ${
-                  selectedMetric === 'duration'
-                    ? 'bg-[#dbf111] text-black'
-                    : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
-                }`}
-              >
-                Duration
-              </button>
-            </div>
-          </div>
-
-          <div className="mb-4">
-            <h3 className="text-md font-semibold text-gray-900 dark:text-white">Select Exercises</h3>
-            <div className="flex gap-2 mt-4 mb-4">
-              <button
-                onClick={handleSelectAll}
-                className="px-3 py-1 rounded-full text-sm bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300"
-              >
-                Select All
-              </button>
-              <button
-                onClick={handleDeselectAll}
-                className="px-3 py-1 rounded-full text-sm bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300"
-              >
-                Deselect All
-              </button>
-            </div>
-            <div className="mt-2 space-y-2">
-              {exerciseData.map(exercise => (
-                <div key={exercise.name} className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id={`exercise-${exercise.name}`}
-                    checked={selectedExercises.includes(exercise.name)}
-                    onChange={(e) => {
-                      const newSelected = e.target.checked
-                        ? [...selectedExercises, exercise.name]
-                        : selectedExercises.filter(name => name !== exercise.name);
-                      handleExerciseSelectionChange(newSelected);
-                    }}
-                    className="accent-[#dbf111]"
+    <>
+      <Header headerType="detail" />
+      <div className="p-4">
+        <div className="max-w-lg mx-auto">
+          <div className="fixed top-0 left-0 right-0 bg-white dark:bg-gray-800 shadow-md z-10">
+            <div className="max-w-lg mx-auto px-4 py-4">
+              <div className="flex justify-between items-center">
+                <Link to="/">
+                  <img 
+                    src={logo}
+                    alt="PRify Workout Tracker" 
+                    className="h-16 cursor-pointer"
                   />
-                  <label
-                    htmlFor={`exercise-${exercise.name}`}
-                    className="text-sm text-gray-600 dark:text-gray-300 cursor-pointer"
-                  >
-                    {exercise.name}
-                  </label>
-                </div>
+                </Link>
+                <ThemeToggle />
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <h1 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white">Statistics</h1>
+
+            <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
+              {(['today', 'week', 'month', 'quarter', 'year'] as const).map((p) => (
+                <button
+                  key={p}
+                  onClick={() => setPeriod(p)}
+                  className={`px-4 py-2 rounded-full whitespace-nowrap ${
+                    period === p 
+                      ? 'bg-[#dbf111] text-black' 
+                      : 'bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300'
+                  }`}
+                >
+                  {p.charAt(0).toUpperCase() + p.slice(1)}
+                </button>
               ))}
             </div>
-          </div>
 
-          <div className="h-[400px] sm:h-[500px]">
-            {filteredExerciseData.length > 0 ? (
-              <Line data={chartData} options={chartOptions} />
-            ) : (
-              <div className="h-full flex items-center justify-center text-gray-500 dark:text-gray-400">
-                No data available for selected metric
+            <div className="grid grid-cols-3 gap-4 mb-8">
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 text-center">
+                <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                  {stats.totalWorkouts}
+                </div>
+                <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">Workouts</div>
               </div>
-            )}
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 text-center">
+                <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+                  {stats.totalExercises}
+                </div>
+                <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">Exercises</div>
+              </div>
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 text-center">
+                <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                  {stats.completionRate}%
+                </div>
+                <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">Completion</div>
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 mb-8">
+              <div className="mb-4">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Exercise Performance
+                </h2>
+                <div className="flex gap-2 mt-2">
+                  <button
+                    onClick={() => setSelectedMetric('reps')}
+                    className={`px-3 py-1 rounded-full text-sm ${
+                      selectedMetric === 'reps'
+                        ? 'bg-[#dbf111] text-black'
+                        : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
+                    }`}
+                  >
+                    Reps
+                  </button>
+                  <button
+                    onClick={() => setSelectedMetric('weight')}
+                    className={`px-3 py-1 rounded-full text-sm ${
+                      selectedMetric === 'weight'
+                        ? 'bg-[#dbf111] text-black'
+                        : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
+                    }`}
+                  >
+                    Weight
+                  </button>
+                  <button
+                    onClick={() => setSelectedMetric('distance')}
+                    className={`px-3 py-1 rounded-full text-sm ${
+                      selectedMetric === 'distance'
+                        ? 'bg-[#dbf111] text-black'
+                        : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
+                    }`}
+                  >
+                    Distance
+                  </button>
+                  <button
+                    onClick={() => setSelectedMetric('duration')}
+                    className={`px-3 py-1 rounded-full text-sm ${
+                      selectedMetric === 'duration'
+                        ? 'bg-[#dbf111] text-black'
+                        : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
+                    }`}
+                  >
+                    Duration
+                  </button>
+                </div>
+              </div>
+
+              <div className="mb-4">
+                <h3 className="text-md font-semibold text-gray-900 dark:text-white">Select Exercises</h3>
+                <div className="flex gap-2 mt-4 mb-4">
+                  <button
+                    onClick={handleSelectAll}
+                    className="px-3 py-1 rounded-full text-sm bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300"
+                  >
+                    Select All
+                  </button>
+                  <button
+                    onClick={handleDeselectAll}
+                    className="px-3 py-1 rounded-full text-sm bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300"
+                  >
+                    Deselect All
+                  </button>
+                </div>
+                <div className="mt-2 space-y-2">
+                  {exerciseData.map(exercise => (
+                    <div key={exercise.name} className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id={`exercise-${exercise.name}`}
+                        checked={selectedExercises.includes(exercise.name)}
+                        onChange={(e) => {
+                          const newSelected = e.target.checked
+                            ? [...selectedExercises, exercise.name]
+                            : selectedExercises.filter(name => name !== exercise.name);
+                          handleExerciseSelectionChange(newSelected);
+                        }}
+                        className="accent-[#dbf111]"
+                      />
+                      <label
+                        htmlFor={`exercise-${exercise.name}`}
+                        className="text-sm text-gray-600 dark:text-gray-300 cursor-pointer"
+                      >
+                        {exercise.name}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="h-[400px] sm:h-[500px]">
+                {filteredExerciseData.length > 0 ? (
+                  <Line data={chartData} options={chartOptions} />
+                ) : (
+                  <div className="h-full flex items-center justify-center text-gray-500 dark:text-gray-400">
+                    No data available for selected metric
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
