@@ -590,14 +590,14 @@ export default function WorkoutList() {
           <WelcomeMessage />
         ) : (
           <>
-            <div className="space-y-6">
+            <div className="space-y-12">
               {workouts.map((workout) => {
                 return (
                   <div
                     key={workout.id}
                     ref={el => workoutRefs.current[workout.id] = el}
                     onClick={() => navigate(`/workout/${workout.id}`)}
-                    className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors space-y-12"
+                    className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                   >
                     <div className="flex justify-between items-start">
                       <div className="flex-1">

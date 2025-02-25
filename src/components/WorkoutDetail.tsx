@@ -675,7 +675,7 @@ export default function WorkoutDetail() {
           />
         </div>
 
-        <div className="space-y-10">
+        <div className="space-y-12">
           {workout.exercises.map((exercise) => {
             const iconInfo = findIconByName(exercise.icon_name || 'dumbbell');
             return (
