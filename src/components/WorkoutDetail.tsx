@@ -54,6 +54,12 @@ export function isValidUrl(url: string): boolean {
   }
 }
 
+const SORT_OPTIONS = {
+  DEFAULT: 'default',
+  NAME_ASC: 'name_asc',
+  NAME_DESC: 'name_desc'
+};
+
 export default function WorkoutDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -77,6 +83,9 @@ export default function WorkoutDetail() {
   const [editingUrl, setEditingUrl] = useState('');
   const [updateDefault, setUpdateDefault] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [sortOption, setSortOption] = useState(
+    localStorage.getItem('sortOption') || SORT_OPTIONS.DEFAULT
+  );
 
   useEffect(() => {
     if (titleInputRef.current) {
@@ -565,6 +574,22 @@ export default function WorkoutDetail() {
     debouncedSaveNotes(exerciseId, '');
   }
 
+  function handleSortChange(option: string) {
+    setSortOption(option);
+    localStorage.setItem('sortOption', option);
+  }
+
+  function sortExercises(exercises: Exercise[]) {
+    switch (sortOption) {
+      case SORT_OPTIONS.NAME_ASC:
+        return [...exercises].sort((a, b) => a.name.localeCompare(b.name));
+      case SORT_OPTIONS.NAME_DESC:
+        return [...exercises].sort((a, b) => b.name.localeCompare(a.name));
+      default:
+        return exercises;
+    }
+  }
+
   useEffect(() => {
     // Cleanup debounced functions on unmount
     return () => {
@@ -702,8 +727,25 @@ export default function WorkoutDetail() {
           </div>
         </div>
 
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Exercises</h2>
+          <div className="flex items-center space-x-2">
+            <label htmlFor="sort" className="text-sm text-gray-600 dark:text-gray-300">Sort by:</label>
+            <select
+              id="sort"
+              value={sortOption}
+              onChange={(e) => handleSortChange(e.target.value)}
+              className="p-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111]"
+            >
+              <option value={SORT_OPTIONS.DEFAULT}>Default</option>
+              <option value={SORT_OPTIONS.NAME_ASC}>Name A - Z</option>
+              <option value={SORT_OPTIONS.NAME_DESC}>Name Z - A</option>
+            </select>
+          </div>
+        </div>
+
         <div className="space-y-12">
-          {workout.exercises.map((exercise) => {
+          {sortExercises(workout.exercises).map((exercise) => {
             const iconInfo = findIconByName(exercise.icon_name || 'dumbbell');
             return (
               <div
