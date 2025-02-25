@@ -78,10 +78,17 @@ export default function Statistics() {
   const [period, setPeriod] = useState<PeriodType>('week');
   const [exerciseData, setExerciseData] = useState<ExerciseData[]>([]);
   const [selectedMetric, setSelectedMetric] = useState<MetricType>('reps');
+  const [selectedExercises, setSelectedExercises] = useState<string[]>([]);
 
   useEffect(() => {
     fetchStatistics();
   }, [period, selectedMetric]);
+
+  useEffect(() => {
+    if (exerciseData.length > 0) {
+      setSelectedExercises(exerciseData.map(ex => ex.name));
+    }
+  }, [exerciseData]);
 
   async function fetchStatistics() {
     const now = new Date();
@@ -174,9 +181,13 @@ export default function Statistics() {
     });
 
     const filteredExerciseData = Array.from(exerciseMap.values())
-      .filter(exercise => exercise.hasData);
+      .filter(exercise => exercise.hasData)
+      .sort((a, b) => a.name.localeCompare(b.name));
 
     setExerciseData(filteredExerciseData);
+
+    // Ensure all exercises are selected by default
+    setSelectedExercises(filteredExerciseData.map(ex => ex.name));
 
     let totalSets = 0;
     let completedSets = 0;
@@ -196,9 +207,23 @@ export default function Statistics() {
     });
   }
 
+  function handleExerciseSelectionChange(selected: string[]) {
+    setSelectedExercises(selected);
+  }
+
+  function handleSelectAll() {
+    setSelectedExercises(exerciseData.map(ex => ex.name));
+  }
+
+  function handleDeselectAll() {
+    setSelectedExercises([]);
+  }
+
+  const filteredExerciseData = exerciseData.filter(ex => selectedExercises.includes(ex.name));
+
   const chartData = {
-    labels: exerciseData[0]?.data.map(d => format(d.date, 'MMM d')) || [],
-    datasets: exerciseData.map((exercise, index) => ({
+    labels: filteredExerciseData[0]?.data.map(d => format(d.date, 'MMM d')) || [],
+    datasets: filteredExerciseData.map((exercise, index) => ({
       label: exercise.name,
       data: exercise.data.map(d => d.value || null),
       borderColor: `hsl(${index * 137.5}, 70%, 50%)`,
@@ -380,8 +405,51 @@ export default function Statistics() {
               </button>
             </div>
           </div>
+
+          <div className="mb-4">
+            <h3 className="text-md font-semibold text-gray-900 dark:text-white">Select Exercises</h3>
+            <div className="flex gap-2 mt-4 mb-4">
+              <button
+                onClick={handleSelectAll}
+                className="px-3 py-1 rounded-full text-sm bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300"
+              >
+                Select All
+              </button>
+              <button
+                onClick={handleDeselectAll}
+                className="px-3 py-1 rounded-full text-sm bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300"
+              >
+                Deselect All
+              </button>
+            </div>
+            <div className="mt-2 space-y-2">
+              {exerciseData.map(exercise => (
+                <div key={exercise.name} className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id={`exercise-${exercise.name}`}
+                    checked={selectedExercises.includes(exercise.name)}
+                    onChange={(e) => {
+                      const newSelected = e.target.checked
+                        ? [...selectedExercises, exercise.name]
+                        : selectedExercises.filter(name => name !== exercise.name);
+                      handleExerciseSelectionChange(newSelected);
+                    }}
+                    className="accent-[#dbf111]"
+                  />
+                  <label
+                    htmlFor={`exercise-${exercise.name}`}
+                    className="text-sm text-gray-600 dark:text-gray-300 cursor-pointer"
+                  >
+                    {exercise.name}
+                  </label>
+                </div>
+              ))}
+            </div>
+          </div>
+
           <div className="h-[400px] sm:h-[500px]">
-            {exerciseData.length > 0 ? (
+            {filteredExerciseData.length > 0 ? (
               <Line data={chartData} options={chartOptions} />
             ) : (
               <div className="h-full flex items-center justify-center text-gray-500 dark:text-gray-400">
