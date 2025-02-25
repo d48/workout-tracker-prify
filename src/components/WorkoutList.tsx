@@ -597,9 +597,9 @@ export default function WorkoutList() {
                     key={workout.id}
                     ref={el => workoutRefs.current[workout.id] = el}
                     onClick={() => navigate(`/workout/${workout.id}`)}
-                    className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                    className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors mb-12"
                   >
-                    <div className="flex justify-between items-start mb-6">
+                    <div className="flex justify-between items-start">
                       <div className="flex-1">
                         <h2 className="text-lg font-semibold text-gray-900 dark:text-white hover:text-[#dbf111] dark:hover:text-[#dbf111] transition-colors">
                           {workout.name}
@@ -613,7 +613,7 @@ export default function WorkoutList() {
                           </p>
                         )}
                       </div>
-                      <div className="flex gap-3 action-buttons ml-4">
+                      <div className="flex gap-5 action-buttons ml-4 pt-2 pr-2">
                         <button
                           onClick={(e) => duplicateWorkout(workout, e)}
                           className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
@@ -703,7 +703,7 @@ export default function WorkoutList() {
                           return (
                             <div
                               key={exercise.id}
-                              className="relative flex items-center gap-3 bg-gray-50 dark:bg-gray-700 p-2 rounded"
+                              className="relative flex items-center gap-3 bg-gray-50 dark:bg-gray-700 p-2 rounded mt-6"
                             >
                               <FontAwesomeIcon 
                                 icon={findIconByName(exercise.icon_name || 'dumbbell').iconDef} 
