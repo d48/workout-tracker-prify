@@ -51,6 +51,7 @@ export default function WorkoutList() {
   const [filter, setFilter] = useState('all');
   const [page, setPage] = useState(1);
   const [totalWorkouts, setTotalWorkouts] = useState(0);
+  const [searchTerm, setSearchTerm] = useState('');
   const navigate = useNavigate();
   const workoutRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const { logo } = useTheme();
@@ -345,6 +346,38 @@ export default function WorkoutList() {
     }
   }
 
+  function highlightText(text: string, term: string) {
+    if (!term) return text;
+    const regex = new RegExp(`(${term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+    return text.split(regex).map((part, index) =>
+      regex.test(part) ? <mark key={index} className="bg-[#dbf111]">{part}</mark> : part
+    );
+  }
+
+  const filteredWorkouts = workouts.filter(workout => {
+    const term = searchTerm.toLowerCase();
+    const workoutMatches = workout.name.toLowerCase().includes(term) ||
+      (workout.notes && workout.notes.toLowerCase().includes(term));
+
+    const exerciseMatches = workout.exercises.some(exercise => {
+      const stats = calculateExerciseStats(exercise);
+      return exercise.name.toLowerCase().includes(term) ||
+        (exercise.notes && exercise.notes.toLowerCase().includes(term)) ||
+        exercise.sets.some(set =>
+          (set.reps !== null && `${set.reps} reps`.toLowerCase().includes(term)) ||
+          (set.weight !== null && `${set.weight} lbs`.toLowerCase().includes(term)) ||
+          (set.distance !== null && `${set.distance.toFixed(1)} mi`.toLowerCase().includes(term)) ||
+          (set.duration !== undefined && set.duration !== null && `${set.duration} min`.toLowerCase().includes(term))
+        ) ||
+        (stats.totalReps !== null && `${stats.totalReps} reps`.toLowerCase().includes(term)) ||
+        (stats.maxWeight !== null && `${stats.maxWeight} lbs`.toLowerCase().includes(term)) ||
+        (stats.totalDistance !== null && `${stats.totalDistance.toFixed(1)} mi`.toLowerCase().includes(term)) ||
+        (stats.totalDuration !== null && `${stats.totalDuration} min`.toLowerCase().includes(term));
+    });
+
+    return workoutMatches || exerciseMatches;
+  });
+
   // Compute global records for each exercise name from the visible workouts
   const globalRecords: Record<
     string,
@@ -586,12 +619,22 @@ export default function WorkoutList() {
           ))}
         </div>
 
-        {workouts.length === 0 ? (
+        <div className="mb-6">
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search workouts..."
+            className="w-full p-3 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111]"
+          />
+        </div>
+
+        {filteredWorkouts.length === 0 ? (
           <WelcomeMessage />
         ) : (
           <>
             <div className="space-y-12">
-              {workouts.map((workout) => {
+              {filteredWorkouts.map((workout) => {
                 return (
                   <div
                     key={workout.id}
@@ -602,14 +645,14 @@ export default function WorkoutList() {
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
                         <h2 className="text-lg font-semibold text-gray-900 dark:text-white hover:text-[#dbf111] dark:hover:text-[#dbf111] transition-colors">
-                          {workout.name}
+                          {highlightText(workout.name, searchTerm)}
                         </h2>
                         <p className="text-sm text-gray-500 dark:text-gray-400">
                           {format(new Date(workout.date), 'MMM d, yyyy')}
                         </p>
                         {workout.notes && (
                           <p className="text-sm text-gray-600 dark:text-gray-300 mt-2 whitespace-pre-wrap">
-                            {workout.notes}
+                            {highlightText(workout.notes, searchTerm)}
                           </p>
                         )}
                       </div>
@@ -711,7 +754,7 @@ export default function WorkoutList() {
                               />
                               <div className="inline-flex items-center gap-3">
                                 <span className="text-sm text-gray-900 dark:text-white">
-                                  {exercise.name}
+                                  {highlightText(exercise.name, searchTerm)}
                                 </span>
                                 {isNewRecord && (
                                   <FontAwesomeIcon 
@@ -722,10 +765,10 @@ export default function WorkoutList() {
                                 )}
                               </div>
                               <div className="flex gap-3 ml-auto text-xs text-gray-600 dark:text-gray-300">
-                                {stats.totalReps && <span>{stats.totalReps} reps</span>}
-                                {stats.maxWeight && <span>{stats.maxWeight} lbs</span>}
-                                {stats.totalDistance && <span>{stats.totalDistance.toFixed(1)} mi</span>}
-                                {stats.totalDuration !== null && <span>{stats.totalDuration} min</span>}
+                                {stats.totalReps !== null && <span>{highlightText(`${stats.totalReps} reps`, searchTerm)}</span>}
+                                {stats.maxWeight !== null && <span>{highlightText(`${stats.maxWeight} lbs`, searchTerm)}</span>}
+                                {stats.totalDistance !== null && <span>{highlightText(`${stats.totalDistance.toFixed(1)} mi`, searchTerm)}</span>}
+                                {stats.totalDuration !== null && <span>{highlightText(`${stats.totalDuration} min`, searchTerm)}</span>}
                               </div>
                             </div>
                           );
