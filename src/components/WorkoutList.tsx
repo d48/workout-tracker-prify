@@ -629,8 +629,17 @@ export default function WorkoutList() {
           />
         </div>
 
-        {filteredWorkouts.length === 0 ? (
+        {workouts.length === 0 ? (
           <WelcomeMessage />
+        ) : filteredWorkouts.length === 0 ? (
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 text-center">
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">No workouts match your search term</h2>
+              <p className="text-gray-600 dark:text-gray-300 mb-4">
+                Please try a different search term.
+              </p>
+            </div>
+          </div>
         ) : (
           <>
             <div className="space-y-12">
