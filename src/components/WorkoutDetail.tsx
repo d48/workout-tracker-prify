@@ -777,7 +777,7 @@ export default function WorkoutDetail() {
                       </div>
                     </div>
                   ) : (
-                    <div className="flex items-center gap-4 mb-6 mt-6">
+                    <div className="flex items-center gap-4 mb-8 mt-6">
                       {exercise.sample_url ? (
                         <>
                           <a
