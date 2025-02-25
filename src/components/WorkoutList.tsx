@@ -1,7 +1,22 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { format, startOfToday, startOfWeek, startOfMonth, endOfToday, endOfWeek, endOfMonth } from 'date-fns';
-import { PlusIcon, TrashIcon, ShareIcon, DocumentDuplicateIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
+import {
+  format,
+  startOfToday,
+  startOfWeek,
+  startOfMonth,
+  endOfToday,
+  endOfWeek,
+  endOfMonth
+} from 'date-fns';
+import {
+  PlusIcon,
+  TrashIcon,
+  ShareIcon,
+  DocumentDuplicateIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon
+} from '@heroicons/react/24/outline';
 import { supabase } from '../lib/supabase';
 import html2canvas from 'html2canvas';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -31,11 +46,20 @@ type Workout = Database['public']['Tables']['workouts']['Row'] & {
 const WORKOUTS_PER_PAGE = 10;
 
 function calculateExerciseStats(exercise: Workout['exercises'][0]) {
-  const completedSets = exercise.sets.filter(set => set.completed);
-  const totalReps = completedSets.reduce((sum, set) => sum + (set.reps || 0), 0);
-  const maxWeight = Math.max(...completedSets.map(set => set.weight || 0));
-  const totalDistance = completedSets.reduce((sum, set) => sum + (set.distance || 0), 0);
-  const totalDuration = completedSets.reduce((sum, set) => sum + (set.duration || 0), 0);
+  const completedSets = exercise.sets.filter((set) => set.completed);
+  const totalReps = completedSets.reduce(
+    (sum, set) => sum + (set.reps || 0),
+    0
+  );
+  const maxWeight = Math.max(...completedSets.map((set) => set.weight || 0));
+  const totalDistance = completedSets.reduce(
+    (sum, set) => sum + (set.distance || 0),
+    0
+  );
+  const totalDuration = completedSets.reduce(
+    (sum, set) => sum + (set.duration || 0),
+    0
+  );
 
   return {
     totalReps: totalReps > 0 ? totalReps : null,
@@ -62,9 +86,8 @@ export default function WorkoutList() {
 
   async function fetchWorkouts() {
     try {
-      let query = supabase
-        .from('workouts')
-        .select(`
+      let query = supabase.from('workouts').select(
+        `
           *,
           exercises (
             id,
@@ -79,7 +102,9 @@ export default function WorkoutList() {
               completed
             )
           )
-        `, { count: 'exact' });
+        `,
+        { count: 'exact' }
+      );
 
       // Apply date filters
       if (filter !== 'all') {
@@ -120,10 +145,13 @@ export default function WorkoutList() {
       if (error) throw error;
 
       // Sort exercises alphabetically within each workout
-      const sortedWorkouts = data?.map(workout => ({
-        ...workout,
-        exercises: [...workout.exercises].sort((a, b) => a.name.localeCompare(b.name))
-      })) || [];
+      const sortedWorkouts =
+        data?.map((workout) => ({
+          ...workout,
+          exercises: [...workout.exercises].sort((a, b) =>
+            a.name.localeCompare(b.name)
+          )
+        })) || [];
 
       setWorkouts(sortedWorkouts);
       if (count !== null) {
@@ -141,7 +169,9 @@ export default function WorkoutList() {
     setLoading(true);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user }
+      } = await supabase.auth.getUser();
       if (!user) throw new Error('No authenticated user found');
 
       // Create new workout with today's date
@@ -176,18 +206,16 @@ export default function WorkoutList() {
         if (!newExercise) throw new Error('No exercise data returned');
 
         // Duplicate sets
-        const sets = exercise.sets.map(set => ({
+        const sets = exercise.sets.map((set) => ({
           exercise_id: newExercise.id,
           reps: set.reps,
           weight: set.weight,
           distance: set.distance,
-          duration: set.duration,  // new field
+          duration: set.duration, // new field
           completed: false // Reset completion status for the new workout
         }));
 
-        const { error: setsError } = await supabase
-          .from('sets')
-          .insert(sets);
+        const { error: setsError } = await supabase.from('sets').insert(sets);
 
         if (setsError) throw setsError;
       }
@@ -207,17 +235,14 @@ export default function WorkoutList() {
       return;
     }
 
-    const { error } = await supabase
-      .from('workouts')
-      .delete()
-      .eq('id', id);
+    const { error } = await supabase.from('workouts').delete().eq('id', id);
 
     if (error) {
       console.error('Error deleting workout:', error);
       return;
     }
 
-    setWorkouts(workouts.filter(w => w.id !== id));
+    setWorkouts(workouts.filter((w) => w.id !== id));
   }
 
   async function shareWorkout(workout: Workout, event: React.MouseEvent) {
@@ -271,12 +296,12 @@ export default function WorkoutList() {
       clone.style.overflow = 'visible';
 
       const actionButtons = clone.querySelectorAll('.action-buttons');
-      actionButtons.forEach(button => button.remove());
+      actionButtons.forEach((button) => button.remove());
       wrapper.appendChild(clone);
       document.body.appendChild(wrapper);
 
       // Wait for layout to stabilize
-      await new Promise(resolve => setTimeout(resolve, 200));
+      await new Promise((resolve) => setTimeout(resolve, 200));
 
       // Generate canvas image of the wrapper
       const canvas = await html2canvas(wrapper, {
@@ -289,16 +314,19 @@ export default function WorkoutList() {
         onclone: (clonedDoc) => {
           const clonedElement = clonedDoc.body.firstChild as HTMLElement;
           clonedElement.style.transform = 'none';
-        },
+        }
       });
 
       document.body.removeChild(wrapper);
 
       const blob = await new Promise<Blob>((resolve) =>
-        canvas.toBlob(blob => resolve(blob!), 'image/png')
+        canvas.toBlob((blob) => resolve(blob!), 'image/png')
       );
 
-      const filename = `${workout.name}-${format(new Date(workout.date), 'yyyy-MM-dd')}.png`;
+      const filename = `${workout.name}-${format(
+        new Date(workout.date),
+        'yyyy-MM-dd'
+      )}.png`;
 
       const isIOS = /iP(ad|hone|od)/.test(navigator.userAgent);
 
@@ -338,8 +366,9 @@ export default function WorkoutList() {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      alert('Image downloaded. (Your browser may not support copying images to the clipboard.)');
-      
+      alert(
+        'Image downloaded. (Your browser may not support copying images to the clipboard.)'
+      );
     } catch (error) {
       console.error('Error sharing workout:', error);
       alert('Failed to share workout. Please try again.');
@@ -348,31 +377,55 @@ export default function WorkoutList() {
 
   function highlightText(text: string, term: string) {
     if (!term) return text;
-    const regex = new RegExp(`(${term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+    const regex = new RegExp(
+      `(${term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`,
+      'gi'
+    );
     return text.split(regex).map((part, index) =>
-      regex.test(part) ? <mark key={index} className="bg-[#dbf111]">{part}</mark> : part
+      regex.test(part) ? (
+        <mark key={index} className="bg-[#dbf111]">
+          {part}
+        </mark>
+      ) : (
+        part
+      )
     );
   }
 
-  const filteredWorkouts = workouts.filter(workout => {
+  const filteredWorkouts = workouts.filter((workout) => {
     const term = searchTerm.toLowerCase();
-    const workoutMatches = workout.name.toLowerCase().includes(term) ||
+    const workoutMatches =
+      workout.name.toLowerCase().includes(term) ||
       (workout.notes && workout.notes.toLowerCase().includes(term));
 
-    const exerciseMatches = workout.exercises.some(exercise => {
+    const exerciseMatches = workout.exercises.some((exercise) => {
       const stats = calculateExerciseStats(exercise);
-      return exercise.name.toLowerCase().includes(term) ||
+      return (
+        exercise.name.toLowerCase().includes(term) ||
         (exercise.notes && exercise.notes.toLowerCase().includes(term)) ||
-        exercise.sets.some(set =>
-          (set.reps !== null && `${set.reps} reps`.toLowerCase().includes(term)) ||
-          (set.weight !== null && `${set.weight} lbs`.toLowerCase().includes(term)) ||
-          (set.distance !== null && `${set.distance.toFixed(1)} mi`.toLowerCase().includes(term)) ||
-          (set.duration !== undefined && set.duration !== null && `${set.duration} min`.toLowerCase().includes(term))
+        exercise.sets.some(
+          (set) =>
+            (set.reps !== null &&
+              `${set.reps} reps`.toLowerCase().includes(term)) ||
+            (set.weight !== null &&
+              `${set.weight} lbs`.toLowerCase().includes(term)) ||
+            (set.distance !== null &&
+              `${set.distance.toFixed(1)} mi`.toLowerCase().includes(term)) ||
+            (set.duration !== undefined &&
+              set.duration !== null &&
+              `${set.duration} min`.toLowerCase().includes(term))
         ) ||
-        (stats.totalReps !== null && `${stats.totalReps} reps`.toLowerCase().includes(term)) ||
-        (stats.maxWeight !== null && `${stats.maxWeight} lbs`.toLowerCase().includes(term)) ||
-        (stats.totalDistance !== null && `${stats.totalDistance.toFixed(1)} mi`.toLowerCase().includes(term)) ||
-        (stats.totalDuration !== null && `${stats.totalDuration} min`.toLowerCase().includes(term));
+        (stats.totalReps !== null &&
+          `${stats.totalReps} reps`.toLowerCase().includes(term)) ||
+        (stats.maxWeight !== null &&
+          `${stats.maxWeight} lbs`.toLowerCase().includes(term)) ||
+        (stats.totalDistance !== null &&
+          `${stats.totalDistance.toFixed(1)} mi`
+            .toLowerCase()
+            .includes(term)) ||
+        (stats.totalDuration !== null &&
+          `${stats.totalDuration} min`.toLowerCase().includes(term))
+      );
     });
 
     return workoutMatches || exerciseMatches;
@@ -396,17 +449,33 @@ export default function WorkoutList() {
       if (!globalRecords[key]) {
         globalRecords[key] = {
           totalReps: stats.totalReps
-            ? { value: stats.totalReps, workoutId: workout.id, date: workout.date }
+            ? {
+                value: stats.totalReps,
+                workoutId: workout.id,
+                date: workout.date
+              }
             : null,
           maxWeight: stats.maxWeight
-            ? { value: stats.maxWeight, workoutId: workout.id, date: workout.date }
+            ? {
+                value: stats.maxWeight,
+                workoutId: workout.id,
+                date: workout.date
+              }
             : null,
           totalDistance: stats.totalDistance
-            ? { value: stats.totalDistance, workoutId: workout.id, date: workout.date }
+            ? {
+                value: stats.totalDistance,
+                workoutId: workout.id,
+                date: workout.date
+              }
             : null,
           totalDuration: stats.totalDuration
-            ? { value: stats.totalDuration, workoutId: workout.id, date: workout.date }
-            : null,
+            ? {
+                value: stats.totalDuration,
+                workoutId: workout.id,
+                date: workout.date
+              }
+            : null
         };
       } else {
         if (stats.totalReps) {
@@ -420,7 +489,7 @@ export default function WorkoutList() {
             globalRecords[key].totalReps = {
               value: stats.totalReps,
               workoutId: workout.id,
-              date: workout.date,
+              date: workout.date
             };
           }
         }
@@ -435,7 +504,7 @@ export default function WorkoutList() {
             globalRecords[key].maxWeight = {
               value: stats.maxWeight,
               workoutId: workout.id,
-              date: workout.date,
+              date: workout.date
             };
           }
         }
@@ -450,7 +519,7 @@ export default function WorkoutList() {
             globalRecords[key].totalDistance = {
               value: stats.totalDistance,
               workoutId: workout.id,
-              date: workout.date,
+              date: workout.date
             };
           }
         }
@@ -465,7 +534,7 @@ export default function WorkoutList() {
             globalRecords[key].totalDuration = {
               value: stats.totalDuration,
               workoutId: workout.id,
-              date: workout.date,
+              date: workout.date
             };
           }
         }
@@ -476,9 +545,14 @@ export default function WorkoutList() {
   const WelcomeMessage = () => (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 text-center">
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">Welcome to PRIFY!</h2>
+        <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">
+          Welcome to PRIFY!
+        </h2>
         <p className="text-gray-600 dark:text-gray-300 mb-4">
-          Start tracking your workouts and breaking personal records (PRs). Whether you're lifting heavier, running faster, or pushing harder, PRIFY helps you achieve and celebrate every milestone in your fitness journey.
+          Start tracking your workouts and breaking personal records (PRs).
+          Whether you're lifting heavier, running faster, or pushing harder,
+          PRify helps you achieve and celebrate every milestone in your fitness
+          journey.
         </p>
       </div>
       <button
@@ -512,21 +586,23 @@ export default function WorkoutList() {
         >
           <ChevronLeftIcon className="h-5 w-5 text-gray-600 dark:text-gray-300" />
         </button>
-        
+
         <div className="flex items-center gap-2">
-          {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
-            <button
-              key={pageNum}
-              onClick={() => handlePageChange(pageNum)}
-              className={`w-8 h-8 rounded-full ${
-                pageNum === page
-                  ? 'bg-[#dbf111] text-black'
-                  : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-              }`}
-            >
-              {pageNum}
-            </button>
-          ))}
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+            (pageNum) => (
+              <button
+                key={pageNum}
+                onClick={() => handlePageChange(pageNum)}
+                className={`w-8 h-8 rounded-full ${
+                  pageNum === page
+                    ? 'bg-[#dbf111] text-black'
+                    : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                }`}
+              >
+                {pageNum}
+              </button>
+            )
+          )}
         </div>
 
         <button
@@ -547,9 +623,9 @@ export default function WorkoutList() {
           <div className="max-w-lg mx-auto px-4 py-4">
             <div className="flex justify-between items-center">
               <Link to="/">
-                <img 
+                <img
                   src={logo}
-                  alt="PRIFY Workout Tracker" 
+                  alt="PRify Workout Tracker"
                   className="h-16 cursor-pointer"
                 />
               </Link>
@@ -567,7 +643,9 @@ export default function WorkoutList() {
             </div>
           </div>
         </div>
-        <div className="pt-24 text-center text-gray-500 dark:text-gray-400">Loading workouts...</div>
+        <div className="pt-24 text-center text-gray-500 dark:text-gray-400">
+          Loading workouts...
+        </div>
       </div>
     );
   }
@@ -578,9 +656,9 @@ export default function WorkoutList() {
         <div className="max-w-lg mx-auto px-4 py-4">
           <div className="flex justify-between items-center">
             <Link to="/">
-              <img 
+              <img
                 src={logo}
-                alt="PRIFY Workout Tracker" 
+                alt="PRIFY Workout Tracker"
                 className="h-16 cursor-pointer"
               />
             </Link>
@@ -599,7 +677,7 @@ export default function WorkoutList() {
         </div>
       </div>
 
-      <div className="pt-24">
+      <div className="pt-24 max-w-lg mx-auto">
         <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
           {['all', 'today', 'week', 'month'].map((period) => (
             <button
@@ -614,7 +692,9 @@ export default function WorkoutList() {
                   : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
               }`}
             >
-              {period === 'all' ? 'All Time' : period.charAt(0).toUpperCase() + period.slice(1)}
+              {period === 'all'
+                ? 'All Time'
+                : period.charAt(0).toUpperCase() + period.slice(1)}
             </button>
           ))}
         </div>
@@ -627,6 +707,15 @@ export default function WorkoutList() {
             placeholder="Search workouts..."
             className="w-full p-3 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111]"
           />
+
+          <div className="ml-2">
+            <button
+              onClick={() => setSearchTerm('')}
+              className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white text-sm underline"
+            >
+              Clear
+            </button>
+          </div>
         </div>
 
         {workouts.length === 0 ? (
@@ -634,7 +723,9 @@ export default function WorkoutList() {
         ) : filteredWorkouts.length === 0 ? (
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 text-center">
             <div className="mb-6">
-              <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">No workouts match your search term</h2>
+              <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">
+                No workouts match your search term
+              </h2>
               <p className="text-gray-600 dark:text-gray-300 mb-4">
                 Please try a different search term.
               </p>
@@ -647,7 +738,7 @@ export default function WorkoutList() {
                 return (
                   <div
                     key={workout.id}
-                    ref={el => workoutRefs.current[workout.id] = el}
+                    ref={(el) => (workoutRefs.current[workout.id] = el)}
                     onClick={() => navigate(`/workout/${workout.id}`)}
                     className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                   >
@@ -704,28 +795,32 @@ export default function WorkoutList() {
                             w.exercises.some(
                               (ex) =>
                                 ex.name === exercise.name &&
-                                calculateExerciseStats(ex).totalReps === record?.totalReps?.value
+                                calculateExerciseStats(ex).totalReps ===
+                                  record?.totalReps?.value
                             )
                           ).length;
                           const weightOccurrences = workouts.filter((w) =>
                             w.exercises.some(
                               (ex) =>
                                 ex.name === exercise.name &&
-                                calculateExerciseStats(ex).maxWeight === record?.maxWeight?.value
+                                calculateExerciseStats(ex).maxWeight ===
+                                  record?.maxWeight?.value
                             )
                           ).length;
                           const distanceOccurrences = workouts.filter((w) =>
                             w.exercises.some(
                               (ex) =>
                                 ex.name === exercise.name &&
-                                calculateExerciseStats(ex).totalDistance === record?.totalDistance?.value
+                                calculateExerciseStats(ex).totalDistance ===
+                                  record?.totalDistance?.value
                             )
                           ).length;
                           const durationOccurrences = workouts.filter((w) =>
                             w.exercises.some(
                               (ex) =>
                                 ex.name === exercise.name &&
-                                calculateExerciseStats(ex).totalDuration === record?.totalDuration?.value
+                                calculateExerciseStats(ex).totalDuration ===
+                                  record?.totalDuration?.value
                             )
                           ).length;
 
@@ -743,12 +838,14 @@ export default function WorkoutList() {
                               weightOccurrences === 1) ||
                             (stats.totalDistance &&
                               record?.totalDistance &&
-                              stats.totalDistance === record.totalDistance.value &&
+                              stats.totalDistance ===
+                                record.totalDistance.value &&
                               workout.id === record.totalDistance.workoutId &&
                               distanceOccurrences === 1) ||
                             (stats.totalDuration &&
                               record?.totalDuration &&
-                              stats.totalDuration === record.totalDuration.value &&
+                              stats.totalDuration ===
+                                record.totalDuration.value &&
                               workout.id === record.totalDuration.workoutId &&
                               durationOccurrences === 1);
 
@@ -757,27 +854,59 @@ export default function WorkoutList() {
                               key={exercise.id}
                               className="relative flex items-center gap-3 bg-gray-50 dark:bg-gray-700 p-2 rounded mt-6"
                             >
-                              <FontAwesomeIcon 
-                                icon={findIconByName(exercise.icon_name || 'dumbbell').iconDef} 
-                                className="h-4 w-4 text-gray-600 dark:text-gray-300" 
+                              <FontAwesomeIcon
+                                icon={
+                                  findIconByName(
+                                    exercise.icon_name || 'dumbbell'
+                                  ).iconDef
+                                }
+                                className="h-4 w-4 text-gray-600 dark:text-gray-300"
                               />
                               <div className="inline-flex items-center gap-3">
                                 <span className="text-sm text-gray-900 dark:text-white">
                                   {highlightText(exercise.name, searchTerm)}
                                 </span>
                                 {isNewRecord && (
-                                  <FontAwesomeIcon 
-                                    icon={faTrophy} 
-                                    className="h-4 w-4 text-gray-600 dark:text-[#dbf111]" 
+                                  <FontAwesomeIcon
+                                    icon={faTrophy}
+                                    className="h-4 w-4 text-gray-600 dark:text-[#dbf111]"
                                     title="New record!"
                                   />
                                 )}
                               </div>
                               <div className="flex gap-3 ml-auto text-xs text-gray-600 dark:text-gray-300">
-                                {stats.totalReps !== null && <span>{highlightText(`${stats.totalReps} reps`, searchTerm)}</span>}
-                                {stats.maxWeight !== null && <span>{highlightText(`${stats.maxWeight} lbs`, searchTerm)}</span>}
-                                {stats.totalDistance !== null && <span>{highlightText(`${stats.totalDistance.toFixed(1)} mi`, searchTerm)}</span>}
-                                {stats.totalDuration !== null && <span>{highlightText(`${stats.totalDuration} min`, searchTerm)}</span>}
+                                {stats.totalReps !== null && (
+                                  <span>
+                                    {highlightText(
+                                      `${stats.totalReps} reps`,
+                                      searchTerm
+                                    )}
+                                  </span>
+                                )}
+                                {stats.maxWeight !== null && (
+                                  <span>
+                                    {highlightText(
+                                      `${stats.maxWeight} lbs`,
+                                      searchTerm
+                                    )}
+                                  </span>
+                                )}
+                                {stats.totalDistance !== null && (
+                                  <span>
+                                    {highlightText(
+                                      `${stats.totalDistance.toFixed(1)} mi`,
+                                      searchTerm
+                                    )}
+                                  </span>
+                                )}
+                                {stats.totalDuration !== null && (
+                                  <span>
+                                    {highlightText(
+                                      `${stats.totalDuration} min`,
+                                      searchTerm
+                                    )}
+                                  </span>
+                                )}
                               </div>
                             </div>
                           );

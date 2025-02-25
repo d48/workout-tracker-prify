@@ -13,7 +13,7 @@ export default function PrivacyPolicy() {
             <Link to="/">
               <img 
                 src={logo}
-                alt="PRIFY Workout Tracker" 
+                alt="PRify Workout Tracker" 
                 className="h-16 cursor-pointer"
               />
             </Link>
@@ -27,7 +27,7 @@ export default function PrivacyPolicy() {
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Privacy Policy</h1>
           <div className="prose dark:prose-invert">
             <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
-              At PRIFY Workout Tracker, we take your privacy seriously. We do not share, sell, or distribute your personal information to third parties. All passwords are securely encrypted, and we implement industry-standard security measures to protect your data.
+              At PRify Workout Tracker, we take your privacy seriously. We do not share, sell, or distribute your personal information to third parties. All passwords are securely encrypted, and we implement industry-standard security measures to protect your data.
             </p>
             <p className="text-gray-600 dark:text-gray-300 leading-relaxed mt-4">
               Any information you provide is used solely to enhance your experience on our platform. If you have any concerns, please contact us.

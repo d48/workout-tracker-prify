@@ -308,7 +308,7 @@ export default function Statistics() {
             <Link to="/">
               <img 
                 src={logo}
-                alt="PRIFY Workout Tracker" 
+                alt="PRify Workout Tracker" 
                 className="h-16 cursor-pointer"
               />
             </Link>

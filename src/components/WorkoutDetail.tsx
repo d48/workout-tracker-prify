@@ -631,7 +631,7 @@ export default function WorkoutDetail() {
             <Link to="/">
               <img
                 src={logo}
-                alt="PRIFY Workout Tracker"
+                alt="PRify Workout Tracker"
                 className="h-16 cursor-pointer"
               />
             </Link>
@@ -640,7 +640,7 @@ export default function WorkoutDetail() {
         </div>
       </div>
 
-      <div className="pt-24">
+      <div className="pt-24 max-w-lg mx-auto">
         {error && (
           <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 flex items-center gap-2">
             <ExclamationCircleIcon className="h-5 w-5 text-red-500" />
