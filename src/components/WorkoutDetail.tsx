@@ -6,7 +6,7 @@ import {
   ExclamationCircleIcon,
   DocumentCheckIcon,
   PencilIcon,
-  ArrowTopRightOnSquareIcon
+  EyeIcon
 } from '@heroicons/react/24/outline';
 import { supabase } from '../lib/supabase';
 import ExerciseSelector from './ExerciseSelector';
@@ -759,7 +759,7 @@ export default function WorkoutDetail() {
                             rel="noopener noreferrer"
                             className="flex items-center text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white text-sm underline"
                           >
-                            <ArrowTopRightOnSquareIcon className="h-5 w-5" />
+                            <EyeIcon className="h-5 w-5" />
                             <span className="ml-2">
                               How to do this exercise
                             </span>
