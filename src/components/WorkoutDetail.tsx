@@ -548,6 +548,23 @@ export default function WorkoutDetail() {
     setShowDatePicker(!showDatePicker);
   }
 
+  function clearWorkoutNotes() {
+    setWorkout((prev) => ({ ...prev, notes: '' }));
+    if (workoutId) {
+      debouncedSaveWorkoutDetails({ notes: '' });
+    }
+  }
+
+  function clearExerciseNotes(exerciseId: string) {
+    setWorkout((prev) => ({
+      ...prev,
+      exercises: prev.exercises.map((ex) =>
+        ex.id === exerciseId ? { ...ex, notes: '' } : ex
+      )
+    }));
+    debouncedSaveNotes(exerciseId, '');
+  }
+
   useEffect(() => {
     // Cleanup debounced functions on unmount
     return () => {
@@ -616,7 +633,7 @@ export default function WorkoutDetail() {
           </div>
         )}
 
-        <div className="mb-6 space-y-4">
+        <div className="mb-6 space-y-8">
           <div className="relative group">
             <textarea
               ref={titleInputRef}
@@ -667,12 +684,22 @@ export default function WorkoutDetail() {
             </div>
           )}
           
-          <textarea
-            value={workout.notes || ''}
-            onChange={handleNotesChange}
-            placeholder="Add workout notes..."
-            className="w-full p-3 border dark:border-gray-600 rounded-lg resize-none h-24 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111]"
-          />
+          <div className="flex flex-col space-y-1 mt-8 mb-8">
+            <textarea
+              value={workout.notes || ''}
+              onChange={handleNotesChange}
+              placeholder="Add workout notes..."
+              className="w-full p-3 border dark:border-gray-600 rounded-lg resize-none h-24 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111]"
+            />
+            <div className="ml-2">
+              <button
+                onClick={clearWorkoutNotes}
+                className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white text-sm underline"
+              >
+                Clear
+              </button>
+            </div>
+          </div>
         </div>
 
         <div className="space-y-12">
@@ -819,14 +846,24 @@ export default function WorkoutDetail() {
                   )}
                 </div>
 
-                <textarea
-                  value={exercise.notes || ''}
-                  onChange={(e) =>
-                    handleExerciseNotesChange(exercise.id, e.target.value)
-                  }
-                  placeholder="Add notes for this exercise..."
-                  className="w-full p-2 border dark:border-gray-600 rounded-lg text-sm mb-4 resize-none h-20 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111]"
-                />
+                <div className="flex flex-col space-y-1 mt-8 mb-8">
+                  <textarea
+                    value={exercise.notes || ''}
+                    onChange={(e) =>
+                      handleExerciseNotesChange(exercise.id, e.target.value)
+                    }
+                    placeholder="Add notes for this exercise..."
+                    className="w-full p-2 border dark:border-gray-600 rounded-lg text-sm resize-none h-20 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111]"
+                  />
+                  <div className="ml-2">
+                    <button
+                      onClick={() => clearExerciseNotes(exercise.id)}
+                      className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white text-sm underline"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                </div>
 
                 <ExerciseStats exercise={exercise} />
 
