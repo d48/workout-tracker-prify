@@ -33,12 +33,14 @@ type WorkoutResponse = Database['public']['Tables']['workouts']['Row'] & {
 function debounce<T extends (...args: any[]) => any>(
   func: T,
   wait: number
-): (...args: Parameters<T>) => void {
+): ((...args: Parameters<T>) => void) & { cancel: () => void } {
   let timeout: NodeJS.Timeout;
-  return (...args: Parameters<T>) => {
+  const debounced = (...args: Parameters<T>) => {
     clearTimeout(timeout);
     timeout = setTimeout(() => func(...args), wait);
   };
+  debounced.cancel = () => clearTimeout(timeout);
+  return debounced;
 }
 
 export function isValidUrl(url: string): boolean {
@@ -116,6 +118,33 @@ export default function WorkoutDetail() {
       }
     }, 500),
     []
+  );
+
+  const debouncedSaveWorkoutDetails = useCallback(
+    debounce(async (updates: Partial<{ name: string; date: string; notes: string }>) => {
+      if (!workoutId) return;
+      
+      try {
+        // Convert date string to ISO format if it exists
+        const formattedUpdates: Record<string, any> = {};
+        if (updates.name !== undefined) formattedUpdates.name = updates.name;
+        if (updates.notes !== undefined) formattedUpdates.notes = updates.notes || null;
+        if (updates.date !== undefined) formattedUpdates.date = new Date(updates.date).toISOString();
+        
+        const { error } = await supabase
+          .from('workouts')
+          .update(formattedUpdates)
+          .eq('id', workoutId);
+
+        if (error) throw error;
+      } catch (error) {
+        console.error('Error updating workout details:', error);
+        if (error instanceof Error) {
+          setError(error.message);
+        }
+      }
+    }, 500),
+    [workoutId]
   );
 
   useEffect(() => {
@@ -499,7 +528,35 @@ export default function WorkoutDetail() {
   function handleDateChange(e: React.ChangeEvent<HTMLInputElement>) {
     const newDate = e.target.value;
     setWorkout((prev) => ({ ...prev, date: newDate }));
+    if (workoutId) {
+      debouncedSaveWorkoutDetails({ date: newDate });
+    }
   }
+
+  function handleNameChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
+    const newName = e.target.value;
+    setWorkout((prev) => ({ ...prev, name: newName }));
+    if (workoutId) {
+      debouncedSaveWorkoutDetails({ name: newName });
+    }
+  }
+
+  function handleNotesChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
+    const newNotes = e.target.value;
+    setWorkout((prev) => ({ ...prev, notes: newNotes }));
+    if (workoutId) {
+      debouncedSaveWorkoutDetails({ notes: newNotes });
+    }
+  }
+
+  useEffect(() => {
+    // Cleanup debounced functions on unmount
+    return () => {
+      debouncedSaveNotes.cancel();
+      debouncedSaveSet.cancel();
+      debouncedSaveWorkoutDetails.cancel();
+    };
+  }, [debouncedSaveNotes, debouncedSaveSet, debouncedSaveWorkoutDetails]);
 
   if (loading) {
     return (
@@ -565,9 +622,7 @@ export default function WorkoutDetail() {
             <textarea
               ref={titleInputRef}
               value={workout.name}
-              onChange={(e) =>
-                setWorkout((prev) => ({ ...prev, name: e.target.value }))
-              }
+              onChange={handleNameChange}
               className="text-2xl font-bold w-full bg-transparent dark:text-white pr-8 focus:bg-white dark:focus:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-[#dbf111] rounded-lg transition-colors p-2 resize-none"
               placeholder="Workout Name"
               rows={1}
@@ -587,9 +642,7 @@ export default function WorkoutDetail() {
           />
           <textarea
             value={workout.notes || ''}
-            onChange={(e) =>
-              setWorkout((prev) => ({ ...prev, notes: e.target.value }))
-            }
+            onChange={handleNotesChange}
             placeholder="Add workout notes..."
             className="w-full p-3 border dark:border-gray-600 rounded-lg resize-none h-24 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111]"
           />
