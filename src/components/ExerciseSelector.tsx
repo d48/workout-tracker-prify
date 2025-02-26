@@ -2,7 +2,13 @@ import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { findIconByName, exerciseIcons, ExerciseIcon } from '../lib/exercise-icons';
-import { PlusIcon, MagnifyingGlassIcon, XMarkIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { 
+  PlusIcon, 
+  MagnifyingGlassIcon, 
+  XMarkIcon, 
+  PencilIcon, 
+  TrashIcon
+} from '@heroicons/react/24/outline';
 import { Database } from '../types/supabase';
 import { isValidUrl } from './WorkoutDetail';
 
@@ -42,9 +48,12 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
   const [showNewCategoryForm, setShowNewCategoryForm] = useState(false);
   const [showNewExerciseForm, setShowNewExerciseForm] = useState(false);
   const newExerciseFormRef = useRef<HTMLDivElement>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
+  const newCategoryFormRef = useRef<HTMLDivElement>(null);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [editingExercise, setEditingExercise] = useState<ExerciseTemplate | null>(null);
   const [error, setError] = useState('');
+  const [categoryError, setCategoryError] = useState('');
   const [newExercise, setNewExercise] = useState<NewExerciseType>({
     name: '',
     category_id: undefined,
@@ -56,6 +65,8 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
     sample_url: '', // <== added sample_url field (optional)
     deleted_category_name: null
   });
+  const [activeCategoryMenu, setActiveCategoryMenu] = useState<string | null>(null);
+  const modalContentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchCategories();
@@ -67,6 +78,70 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
       newExerciseFormRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [showNewExerciseForm]);
+
+  useEffect(() => {
+    if (showNewCategoryForm && newCategoryFormRef.current) {
+      newCategoryFormRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [showNewCategoryForm]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
+        onClose();
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [onClose]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (activeCategoryMenu !== null) {
+        const menuElements = document.querySelectorAll('.category-menu');
+        let clickedInsideMenu = false;
+        
+        menuElements.forEach(menu => {
+          if (menu.contains(event.target as Node)) {
+            clickedInsideMenu = true;
+          }
+        });
+        
+        if (!clickedInsideMenu) {
+          setActiveCategoryMenu(null);
+        }
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [activeCategoryMenu]);
+
+  useEffect(() => {
+    setActiveCategoryMenu(null);
+  }, [search, showNewCategoryForm, showNewExerciseForm]);
+
+  const handleShowNewExerciseForm = () => {
+    setShowNewExerciseForm(true);
+    if (newExerciseFormRef.current) {
+      newExerciseFormRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  const handleShowNewCategoryForm = () => {
+    setShowNewCategoryForm(true);
+    // Scroll to the top of the modal when adding a new category
+    if (modalContentRef.current) {
+      setTimeout(() => {
+        modalContentRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+      }, 50);
+    }
+  };
 
   const filteredIcons = exerciseIcons;
 
@@ -81,7 +156,11 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
       return;
     }
     if (data) {
-      setCategories(data);
+      // Ensure they're sorted client-side as well
+      const sortedCategories = [...data].sort((a, b) => 
+        a.name.toLowerCase().localeCompare(b.name.toLowerCase())
+      );
+      setCategories(sortedCategories);
     }
   }
 
@@ -227,7 +306,12 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
       }
 
       if (data) {
-        setCategories([...categories, data]);
+        // Sort categories alphabetically after adding a new one
+        const updatedCategories = [...categories, data].sort((a, b) => 
+          a.name.toLowerCase().localeCompare(b.name.toLowerCase())
+        );
+        
+        setCategories(updatedCategories);
         setNewCategoryName('');
         setShowNewCategoryForm(false);
         setNewExercise(prev => ({ ...prev, category_id: data.id }));
@@ -263,9 +347,26 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
     return matchesSearch && matchesCategory;
   });
 
+  // Add a function to find the Uncategorized category ID
+  const getUncategorizedCategoryId = (): string | null => {
+    const uncategorizedCategory = categories.find(c => c.is_default && c.name === 'Uncategorized');
+    return uncategorizedCategory?.id || null;
+  };
+
+  // Add this function to set default category when form is shown
+  useEffect(() => {
+    if (showNewExerciseForm && !editingExercise) {
+      const uncategorizedId = getUncategorizedCategoryId();
+      if (uncategorizedId) {
+        setNewExercise(prev => ({ ...prev, category_id: uncategorizedId }));
+      }
+    }
+  }, [showNewExerciseForm, categories]);
+
   async function handleExerciseSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
+    setCategoryError('');
   
     // Validate sample URL if provided (using the isValidUrl helper from WorkoutDetail)
     if (newExercise.sample_url && !isValidUrl(newExercise.sample_url)) {
@@ -273,8 +374,19 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
       return;
     }
   
-    if (!newExercise.name.trim() || !newExercise.category_id) {
-      setError('Please enter a name and select a category');
+    if (!newExercise.name.trim()) {
+      setError('Please enter a name');
+      return;
+    }
+
+    // Get the uncategorized category ID as fallback
+    const uncategorizedId = getUncategorizedCategoryId();
+    // Use the selected category ID or fall back to uncategorized
+    const categoryId = newExercise.category_id || uncategorizedId;
+    
+    // If we don't have a category ID at all (not even uncategorized), show an error
+    if (!categoryId) {
+      setCategoryError('Please select a category or create an "Uncategorized" category first');
       return;
     }
   
@@ -299,7 +411,7 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
           .from('exercise_templates')
           .update({
             ...newExercise,
-            category_id: newExercise.category_id ?? '',
+            category_id: categoryId,
             icon_name: selectedIcon.name
           })
           .eq('id', editingExercise.id)
@@ -315,7 +427,7 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
           .from('exercise_templates')
           .insert({
             ...newExercise,
-            category_id: newExercise.category_id ?? '',
+            category_id: categoryId,
             is_custom: true,
             icon_name: selectedIcon.name,
             user_id: user.id
@@ -397,6 +509,7 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
     setEditingExercise(null);
     setShowNewExerciseForm(false);
     setError('');
+    setCategoryError('');
   }
 
   const handleNumberChange = (
@@ -412,7 +525,7 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
 
   const IconSelector = () => (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-md max-h-[80vh] overflow-hidden flex flex-col">
+      <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-md max-height-[80vh] overflow-hidden flex flex-col">
         <div className="p-4 border-b dark:border-gray-700">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Select Icon</h3>
@@ -445,176 +558,176 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
   );
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-40">
-      <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-md max-h-[80vh] overflow-hidden flex flex-col">
-        <div className="p-4 border-b dark:border-gray-700">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Select Exercise</h2>
-            <button onClick={onClose} className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">×</button>
-          </div>
-          <div className="relative mb-4">
-            <MagnifyingGlassIcon className="h-5 w-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search exercises..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111] select-text"
-            />
-          </div>
-          <div className="mb-2">
-            <div className="flex justify-between items-center mb-6">
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Categories</label>
-              <button
-                onClick={() => setShowNewCategoryForm(true)}
-                className="text-gray-900 dark:text-white hover:text-gray-700 dark:hover:text-gray-300 text-sm flex items-center gap-1 underline"
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center p-4 z-50 overflow-y-auto">
+      <div ref={modalRef} className="relative bg-white dark:bg-gray-800 rounded-lg w-full max-w-md mt-16 mb-4">
+        <div className="sticky top-0 bg-white dark:bg-gray-800 border-b dark:border-gray-700 rounded-t-lg z-10">
+          <div className="p-4">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Select Exercise</h2>
+              <button 
+                onClick={onClose}
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full"
+                aria-label="Close"
               >
-                <PlusIcon className="h-4 w-4" />
-                Add Category
+                <XMarkIcon className="h-6 w-6 text-gray-500 dark:text-gray-400" />
               </button>
             </div>
-            <div className="flex gap-2 overflow-x-auto pb-2">
-                <div key="all" className="relative flex flex-col items-start">
-              <button
-                onClick={() => setSelectedCategory(null)}
-                className={`px-3 py-1 rounded-full whitespace-nowrap w-fit ${
-                  !selectedCategory 
-                    ? 'bg-[#dbf111] text-black' 
-                    : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
-                }`}
-              >
-                All
-              </button>
-              </div>
-              {categories.map(category => (
-                <div key={category.id} className="relative flex flex-col items-start">
-                  <button
-                    onClick={() => setSelectedCategory(category.id)}
-                    className={`px-3 py-1 rounded-full whitespace-nowrap ${
-                      category.id === selectedCategory
-                        ? 'bg-[#dbf111] text-black'
-                        : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
-                    }`}
-                  >
-                    {category.name}
-                    {!category.is_default && (
-                      <span className="text-xs ml-1 opacity-80">(Custom)</span>
-                    )}
-                  </button>
-                  {!category.is_default && (
-                    <div className="flex gap-2 mt-1">
-                      <button
-                        onClick={() => {
-                          const newName = prompt('Enter new category name:', category.name);
-                          if (newName) handleEditCategory(category.id, newName);
-                        }}
-                        className="flex items-center p-1 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
-                        title="Edit category"
-                      >
-                        <PencilIcon className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => {
-                          if (confirm('Are you sure you want to delete this category? Exercises will be assigned to "Uncategorized".')) {
-                            handleDeleteCategory(category.id);
-                          }
-                        }}
-                        className="flex items-center p-1 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
-                        title="Delete category"
-                      >
-                        <TrashIcon className="h-4 w-4" />
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ))}
+            <div className="relative mb-4">
+              <MagnifyingGlassIcon className="h-5 w-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search exercises..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111]"
+              />
             </div>
-          </div>
-          {showNewCategoryForm && (
-            <form onSubmit={handleAddCategory} className="mb-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                New Category Name
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={newCategoryName}
-                  onChange={(e) => setNewCategoryName(e.target.value)}
-                  placeholder="Enter category name..."
-                  className="flex-1 px-3 py-1 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111]"
-                  autoFocus
-                />
-                <button type="submit" className="px-3 py-1 bg-[#dbf111] text-black rounded hover:bg-[#c5d60f]">Add</button>
+
+            <div className="mb-2">
+              <div className="flex justify-between items-center mb-4">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Categories</label>
                 <button
-                  type="button"
-                  onClick={() => {
-                    setShowNewCategoryForm(false);
-                    setNewCategoryName('');
-                  }}
-                  className="px-3 py-1 bg-gray-100 dark:bg-gray-600 text-gray-600 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-500"
+                  onClick={handleShowNewCategoryForm}
+                  className="text-gray-900 dark:text-white hover:text-gray-700 dark:hover:text-gray-300 text-sm flex items-center gap-1 underline"
                 >
-                  <XMarkIcon className="h-5 w-5" />
+                  <PlusIcon className="h-4 w-4" />
+                  Add Category
                 </button>
               </div>
-            </form>
-          )}
-          {error && (
-            <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 text-red-700 dark:text-red-400">
-              {error}
+              
+              {/* Horizontal scrollable container for categories */}
+              <div className="relative overflow-x-auto pb-4">
+                <div className="flex gap-4 min-w-min"> 
+                  {/* Categories in a horizontal row */}
+                  {categories.map(category => (
+                    <div key={category.id} className="relative category-menu shrink-0">
+                      <div className="flex flex-col items-center">
+                        {/* Category button */}
+                        <button
+                          onClick={() => setSelectedCategory(selectedCategory === category.id ? null : category.id)}
+                          className={`px-3 py-2 rounded-md border dark:border-gray-600 whitespace-nowrap text-sm ${
+                            selectedCategory === category.id
+                              ? 'bg-[#dbf111] text-black'
+                              : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
+                          }`}
+                        >
+                          {category.name}
+                        </button>
+                        
+                        {/* Edit/delete icons below each custom category */}
+                        {!category.is_default && (
+                          <div className="flex justify-center mt-2 gap-2">
+                            <button
+                              onClick={() => {
+                                const newName = prompt('Enter new category name:', category.name);
+                                if (newName) {
+                                  handleEditCategory(category.id, newName);
+                                }
+                              }}
+                              className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-white"
+                              aria-label="Edit category"
+                            >
+                              <PencilIcon className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => {
+                                handleDeleteCategory(category.id);
+                              }}
+                              className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-white"
+                              aria-label="Delete category"
+                            >
+                              <TrashIcon className="h-4 w-4" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div ref={modalContentRef} className="overflow-y-auto max-h-[calc(100vh-16rem)]">
+          {showNewCategoryForm && (
+            <div ref={newCategoryFormRef} className="p-4 border-t dark:border-gray-700">
+              <form onSubmit={handleAddCategory} className="space-y-4">
+                <input
+                  type="text"
+                  placeholder="New category name..."
+                  value={newCategoryName}
+                  onChange={(e) => setNewCategoryName(e.target.value)}
+                  className="w-full p-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111]"
+                />
+                <div className="flex gap-2">
+                  <button
+                    type="submit"
+                    className="flex-1 bg-[#dbf111] text-black py-2 rounded hover:bg-[#c5d60f] flex items-center justify-center gap-2"
+                  >
+                    <PlusIcon className="h-5 w-5" />
+                    Add Category
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowNewCategoryForm(false)}
+                    className="px-4 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 py-2 rounded hover:bg-gray-200 dark:hover:bg-gray-600"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
             </div>
           )}
-        </div>
-        <div className="overflow-y-auto flex-1">
+          
+          {error && (
+            <div className="p-4">
+              <span className="text-xs text-red-500">
+                {error}
+              </span>
+            </div>
+          )}
+
           <div className="p-4 space-y-2">
-            {filteredExercises.map(exercise => {
-              const iconInfo = findIconByName(exercise.icon_name || 'dumbbell');
-              return (
-                <div
-                  key={exercise.id}
-                  className="w-full text-left p-3 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center gap-3"
+            {filteredExercises.map(exercise => (
+              <div
+                key={exercise.id}
+                className="flex justify-between items-center p-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              >
+                <button
+                  onClick={() => {
+                    onSelect(exercise);
+                    onClose();
+                  }}
+                  className="flex-1 flex items-center gap-2 text-left"
                 >
-                  <button
-                    onClick={() => {
-                      onSelect(exercise);
-                      onClose();
-                    }}
-                    className="flex-1 flex items-center gap-3"
-                  >
-                    <FontAwesomeIcon icon={iconInfo.iconDef} className="h-5 w-5 text-gray-600 dark:text-gray-300" />
-                    <div>
-                      <span className="text-gray-900 dark:text-white">{exercise.name}</span>
-                      {exercise.is_custom && <span className="text-sm text-gray-500 dark:text-gray-400 ml-2">Custom</span>}
-                      {exercise.deleted_category_name && (
-                        <span className="text-sm text-red-500 dark:text-red-400 ml-2">{exercise.deleted_category_name}</span>
-                      )}
-                    </div>
-                  </button>
-                  {exercise.is_custom && (
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => handleEditExercise(exercise)}
-                        className="p-1 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
-                        title="Edit exercise"
-                      >
-                        <PencilIcon className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteExercise(exercise)}
-                        className="p-1 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
-                        title="Delete exercise"
-                      >
-                        <TrashIcon className="h-4 w-4" />
-                      </button>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+                  <FontAwesomeIcon icon={findIconByName(exercise.icon_name || 'dumbbell').iconDef} className="h-6 w-6 text-gray-600 dark:text-gray-300" />
+                  <span>{exercise.name}</span>
+                </button>
+                {exercise.is_custom && (
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleEditExercise(exercise)}
+                      className="p-1 hover:bg-gray-100 dark:hover:bg-gray-600 rounded"
+                    >
+                      <PencilIcon className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteExercise(exercise)}
+                      className="p-1 hover:bg-gray-100 dark:hover:bg-gray-600 rounded"
+                    >
+                      <TrashIcon className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
+
           <div className="p-4 border-t dark:border-gray-700" ref={newExerciseFormRef}>
             {!showNewExerciseForm ? (
               <button
-                onClick={() => setShowNewExerciseForm(true)}
+                onClick={handleShowNewExerciseForm}
                 className="text-gray-900 dark:text-white hover:text-gray-700 dark:hover:text-gray-300 text-sm flex items-center gap-1"
               >
                 <PlusIcon className="h-4 w-4" />
@@ -638,18 +751,27 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
                     <FontAwesomeIcon icon={selectedIcon.iconDef} className="h-6 w-6 text-gray-600 dark:text-gray-300" />
                   </button>
                 </div>
-                <select
-                  value={newExercise.category_id || ''}
-                  onChange={(e) =>
-                    setNewExercise(prev => ({ ...prev, category_id: e.target.value || null }))
-                  }
-                  className="w-full p-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111]"
-                >
-                  <option value="">Select category...</option>
-                  {categories.map(category => (
-                    <option key={category.id} value={category.id}>{category.name}</option>
-                  ))}
-                </select>
+                <div>
+                  <select
+                    value={newExercise.category_id || ''}
+                    onChange={(e) => {
+                      setCategoryError('');
+                      setNewExercise(prev => ({ ...prev, category_id: e.target.value || getUncategorizedCategoryId() }));
+                    }}
+                    className={`w-full p-2 border rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111] ${
+                      categoryError ? 'border-red-500 dark:border-red-500' : 'dark:border-gray-600'
+                    }`}
+                  >
+                    {categories.map(category => (
+                      <option key={category.id} value={category.id}>{category.name}</option>
+                    ))}
+                  </select>
+                  {categoryError && (
+                    <span className="text-xs text-red-500">
+                      {categoryError}
+                    </span>
+                  )}
+                </div>
                 <div className="grid grid-cols-4 gap-2">
                   <div>
                     <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">Default Sets</label>
