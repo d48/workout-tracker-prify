@@ -4,10 +4,11 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { findIconByName, exerciseIcons, ExerciseIcon } from '../lib/exercise-icons';
 import { 
   PlusIcon, 
-  MagnifyingGlassIcon, 
   XMarkIcon, 
   PencilIcon, 
-  TrashIcon
+  TrashIcon,
+  ChevronUpIcon,
+  ChevronDownIcon
 } from '@heroicons/react/24/outline';
 import { Database } from '../types/supabase';
 import { isValidUrl } from './WorkoutDetail';
@@ -39,7 +40,6 @@ interface ExerciseSelectorProps {
 }
 
 export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelectorProps) {
-  const [search, setSearch] = useState('');
   const [categories, setCategories] = useState<Category[]>([]);
   const [exercises, setExercises] = useState<ExerciseTemplate[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null | undefined>(undefined);
@@ -67,6 +67,7 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
   });
   const [activeCategoryMenu, setActiveCategoryMenu] = useState<string | null>(null);
   const modalContentRef = useRef<HTMLDivElement>(null);
+  const [showCategories, setShowCategories] = useState(false);
 
   useEffect(() => {
     fetchCategories();
@@ -124,7 +125,7 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
 
   useEffect(() => {
     setActiveCategoryMenu(null);
-  }, [search, showNewCategoryForm, showNewExerciseForm]);
+  }, [showNewCategoryForm, showNewExerciseForm]);
 
   const handleShowNewExerciseForm = () => {
     setShowNewExerciseForm(true);
@@ -342,9 +343,8 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
 
   // Then filter the uniqueExercises as needed:
   const filteredExercises = uniqueExercises.filter(exercise => {
-    const matchesSearch = exercise.name.toLowerCase().includes(search.toLowerCase());
     const matchesCategory = !selectedCategory || exercise.category_id === selectedCategory;
-    return matchesSearch && matchesCategory;
+    return matchesCategory;
   });
 
   // Add a function to find the Uncategorized category ID
@@ -561,8 +561,8 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center p-4 z-50 overflow-y-auto">
       <div ref={modalRef} className="relative bg-white dark:bg-gray-800 rounded-lg w-full max-w-md mt-16 mb-4">
         <div className="sticky top-0 bg-white dark:bg-gray-800 border-b dark:border-gray-700 rounded-t-lg z-10">
-          <div className="p-4">
-            <div className="flex justify-between items-center mb-4">
+          <div className="pt-4 px-4 py-4">
+            <div className="flex justify-between items-center">
               <h2 className="text-xl font-bold text-gray-900 dark:text-white">Select Exercise</h2>
               <button 
                 onClick={onClose}
@@ -572,77 +572,105 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
                 <XMarkIcon className="h-6 w-6 text-gray-500 dark:text-gray-400" />
               </button>
             </div>
-            <div className="relative mb-4">
-              <MagnifyingGlassIcon className="h-5 w-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search exercises..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111]"
-              />
-            </div>
+            
 
+            {/* Categories section with toggle */}
             <div className="mb-2">
-              <div className="flex justify-between items-center mb-4">
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Categories</label>
-                <button
-                  onClick={handleShowNewCategoryForm}
-                  className="text-gray-900 dark:text-white hover:text-gray-700 dark:hover:text-gray-300 text-sm flex items-center gap-1 underline"
-                >
-                  <PlusIcon className="h-4 w-4" />
-                  Add Category
-                </button>
+              {/* Header with toggle button - no longer a button containing buttons */}
+              <div 
+                className="flex w-full justify-between items-center py-2 group cursor-pointer"
+                onClick={() => setShowCategories(!showCategories)}
+                role="button"
+                aria-expanded={showCategories}
+                aria-controls="categories-section"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Categories</span>
+                  {selectedCategory && (
+                    <span className="bg-[#dbf111] text-black text-xs font-medium px-2 py-0.5 rounded-full">
+                      {categories.find(c => c.id === selectedCategory)?.name}
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  {/* Separate button not inside a button */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation(); // Prevent toggle of categories section
+                      handleShowNewCategoryForm();
+                    }}
+                    className="text-gray-900 dark:text-white hover:text-gray-700 dark:hover:text-gray-300 text-sm flex items-center gap-1"
+                    aria-label="Add category"
+                  >
+                    <PlusIcon className="h-4 w-4" />
+                  </button>
+                  {/* Icon now part of the clickable div, not inside a button */}
+                  {showCategories ? (
+                    <ChevronUpIcon className="h-5 w-5 text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-300" />
+                  ) : (
+                    <ChevronDownIcon className="h-5 w-5 text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-300" />
+                  )}
+                </div>
               </div>
               
-              {/* Horizontal scrollable container for categories */}
-              <div className="relative overflow-x-auto pb-4">
-                <div className="flex gap-4 min-w-min"> 
-                  {/* Categories in a horizontal row */}
-                  {categories.map(category => (
-                    <div key={category.id} className="relative category-menu shrink-0">
-                      <div className="flex flex-col items-center">
-                        {/* Category button */}
-                        <button
-                          onClick={() => setSelectedCategory(selectedCategory === category.id ? null : category.id)}
-                          className={`px-3 py-2 rounded-md border dark:border-gray-600 whitespace-nowrap text-sm ${
-                            selectedCategory === category.id
-                              ? 'bg-[#dbf111] text-black'
-                              : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
-                          }`}
-                        >
-                          {category.name}
-                        </button>
-                        
-                        {/* Edit/delete icons below each custom category */}
-                        {!category.is_default && (
-                          <div className="flex justify-center mt-2 gap-2">
-                            <button
-                              onClick={() => {
-                                const newName = prompt('Enter new category name:', category.name);
-                                if (newName) {
-                                  handleEditCategory(category.id, newName);
-                                }
-                              }}
-                              className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-white"
-                              aria-label="Edit category"
-                            >
-                              <PencilIcon className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => {
-                                handleDeleteCategory(category.id);
-                              }}
-                              className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-white"
-                              aria-label="Delete category"
-                            >
-                              <TrashIcon className="h-4 w-4" />
-                            </button>
-                          </div>
-                        )}
+              {/* Categories content */}
+              <div 
+                id="categories-section"
+                className={`transition-all duration-300 ease-in-out origin-top ${
+                  showCategories 
+                    ? 'transform scale-y-100 opacity-100 max-h-[200px]' 
+                    : 'transform scale-y-95 opacity-0 max-h-0 overflow-hidden'
+                }`}
+              >
+                {/* Horizontal scrollable container for categories */}
+                <div className="relative overflow-x-auto pb-4">
+                  <div className="flex gap-4 min-w-min"> 
+                    {/* Categories in a horizontal row */}
+                    {categories.map(category => (
+                      <div key={category.id} className="relative category-menu shrink-0">
+                        <div className="flex flex-col items-center">
+                          {/* Category button */}
+                          <button
+                            onClick={() => setSelectedCategory(selectedCategory === category.id ? null : category.id)}
+                            className={`px-3 py-2 rounded-md border dark:border-gray-600 whitespace-nowrap text-sm ${
+                              selectedCategory === category.id
+                                ? 'bg-[#dbf111] text-black'
+                                : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
+                            }`}
+                          >
+                            {category.name}
+                          </button>
+                          
+                          {/* Edit/delete icons below each custom category */}
+                          {!category.is_default && (
+                            <div className="flex justify-center mt-2 gap-2">
+                              <button
+                                onClick={() => {
+                                  const newName = prompt('Enter new category name:', category.name);
+                                  if (newName) {
+                                    handleEditCategory(category.id, newName);
+                                  }
+                                }}
+                                className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-white"
+                                aria-label="Edit category"
+                              >
+                                <PencilIcon className="h-4 w-4" />
+                              </button>
+                              <button
+                                onClick={() => {
+                                  handleDeleteCategory(category.id);
+                                }}
+                                className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-white"
+                                aria-label="Delete category"
+                              >
+                                <TrashIcon className="h-4 w-4" />
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
@@ -688,43 +716,7 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
             </div>
           )}
 
-          <div className="p-4 space-y-2">
-            {filteredExercises.map(exercise => (
-              <div
-                key={exercise.id}
-                className="flex justify-between items-center p-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-              >
-                <button
-                  onClick={() => {
-                    onSelect(exercise);
-                    onClose();
-                  }}
-                  className="flex-1 flex items-center gap-2 text-left"
-                >
-                  <FontAwesomeIcon icon={findIconByName(exercise.icon_name || 'dumbbell').iconDef} className="h-6 w-6 text-gray-600 dark:text-gray-300" />
-                  <span>{exercise.name}</span>
-                </button>
-                {exercise.is_custom && (
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => handleEditExercise(exercise)}
-                      className="p-1 hover:bg-gray-100 dark:hover:bg-gray-600 rounded"
-                    >
-                      <PencilIcon className="h-4 w-4 text-gray-500 dark:text-gray-400" />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteExercise(exercise)}
-                      className="p-1 hover:bg-gray-100 dark:hover:bg-gray-600 rounded"
-                    >
-                      <TrashIcon className="h-4 w-4 text-gray-500 dark:text-gray-400" />
-                    </button>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-
-          <div className="p-4 border-t dark:border-gray-700" ref={newExerciseFormRef}>
+<div className="p-4 border-t dark:border-gray-700" ref={newExerciseFormRef}>
             {!showNewExerciseForm ? (
               <button
                 onClick={handleShowNewExerciseForm}
@@ -866,6 +858,44 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
               </form>
             )}
           </div>
+
+          <div className="p-4 space-y-2">
+            {filteredExercises.map(exercise => (
+              <div
+                key={exercise.id}
+                className="flex justify-between items-center p-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              >
+                <button
+                  onClick={() => {
+                    onSelect(exercise);
+                    onClose();
+                  }}
+                  className="flex-1 flex items-center gap-2 text-left"
+                >
+                  <FontAwesomeIcon icon={findIconByName(exercise.icon_name || 'dumbbell').iconDef} className="h-6 w-6 text-gray-600 dark:text-gray-300" />
+                  <span>{exercise.name}</span>
+                </button>
+                {exercise.is_custom && (
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleEditExercise(exercise)}
+                      className="p-1 hover:bg-gray-100 dark:hover:bg-gray-600 rounded"
+                    >
+                      <PencilIcon className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteExercise(exercise)}
+                      className="p-1 hover:bg-gray-100 dark:hover:bg-gray-600 rounded"
+                    >
+                      <TrashIcon className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+
         </div>
       </div>
       {showIconSelector && <IconSelector />}
