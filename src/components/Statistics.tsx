@@ -80,6 +80,25 @@ export default function Statistics() {
   const [exerciseData, setExerciseData] = useState<ExerciseData[]>([]);
   const [selectedMetric, setSelectedMetric] = useState<MetricType>('reps');
   const [selectedExercises, setSelectedExercises] = useState<string[]>([]);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  // Add this function to toggle dropdown
+  const toggleDropdown = () => {
+    setIsDropdownOpen(!isDropdownOpen);
+  };
+
+  // Add this function to close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const dropdown = document.getElementById('exercise-dropdown');
+      if (dropdown && !dropdown.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     fetchStatistics();
@@ -411,44 +430,85 @@ export default function Statistics() {
               </div>
 
               <div className="mb-4">
-                <h3 className="text-md font-semibold text-gray-900 dark:text-white">Select Exercises</h3>
-                <div className="flex gap-2 mt-4 mb-4">
+                <h3 className="text-md font-semibold text-gray-900 dark:text-white mb-2">
+                  Select Exercises
+                </h3>
+                <div className="relative" id="exercise-dropdown">
                   <button
-                    onClick={handleSelectAll}
-                    className="px-3 py-1 rounded-full text-sm bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300"
+                    onClick={toggleDropdown}
+                    className="w-full px-4 py-2 text-left bg-white dark:bg-gray-800 border dark:border-gray-600 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111] text-gray-900 dark:text-gray-100"
                   >
-                    Select All
-                  </button>
-                  <button
-                    onClick={handleDeselectAll}
-                    className="px-3 py-1 rounded-full text-sm bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300"
-                  >
-                    Deselect All
-                  </button>
-                </div>
-                <div className="mt-2 space-y-2">
-                  {exerciseData.map(exercise => (
-                    <div key={exercise.name} className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        id={`exercise-${exercise.name}`}
-                        checked={selectedExercises.includes(exercise.name)}
-                        onChange={(e) => {
-                          const newSelected = e.target.checked
-                            ? [...selectedExercises, exercise.name]
-                            : selectedExercises.filter(name => name !== exercise.name);
-                          handleExerciseSelectionChange(newSelected);
-                        }}
-                        className="checkbox-custom accent-[#dbf111]"
-                      />
-                      <label
-                        htmlFor={`exercise-${exercise.name}`}
-                        className="text-sm text-gray-600 dark:text-gray-300 cursor-pointer"
+                    <div className="flex justify-between items-center">
+                      <span>
+                        {selectedExercises.length === 0
+                          ? 'Select exercises'
+                          : `${selectedExercises.length} exercise${
+                              selectedExercises.length === 1 ? '' : 's'
+                            } selected`}
+                      </span>
+                      <svg
+                        className={`w-5 h-5 transition-transform ${
+                          isDropdownOpen ? 'transform rotate-180' : ''
+                        }`}
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
                       >
-                        {exercise.name}
-                      </label>
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19 9l-7 7-7-7"
+                        />
+                      </svg>
                     </div>
-                  ))}
+                  </button>
+
+                  {isDropdownOpen && (
+                    <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border dark:border-gray-600 rounded-lg shadow-lg max-h-60 overflow-auto">
+                      <div className="sticky top-0 bg-white dark:bg-gray-800 border-b dark:border-gray-600 p-2 flex gap-2">
+                        <button
+                          onClick={handleSelectAll}
+                          className="flex-1 px-3 py-1 text-sm bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600"
+                        >
+                          Select All
+                        </button>
+                        <button
+                          onClick={handleDeselectAll}
+                          className="flex-1 px-3 py-1 text-sm bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600"
+                        >
+                          Deselect All
+                        </button>
+                      </div>
+                      <div className="p-2">
+                        {exerciseData.map(exercise => (
+                          <div
+                            key={exercise.name}
+                            className="flex items-center px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                          >
+                            <input
+                              type="checkbox"
+                              id={`exercise-${exercise.name}`}
+                              checked={selectedExercises.includes(exercise.name)}
+                              onChange={(e) => {
+                                const newSelected = e.target.checked
+                                  ? [...selectedExercises, exercise.name]
+                                  : selectedExercises.filter(name => name !== exercise.name);
+                                handleExerciseSelectionChange(newSelected);
+                              }}
+                              className="checkbox-custom accent-[#dbf111]"
+                            />
+                            <label
+                              htmlFor={`exercise-${exercise.name}`}
+                              className="ml-2 text-sm text-gray-600 dark:text-gray-300 cursor-pointer"
+                            >
+                              {exercise.name}
+                            </label>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
