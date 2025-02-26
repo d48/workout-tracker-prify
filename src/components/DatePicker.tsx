@@ -103,6 +103,10 @@ export default function DatePicker({ selectedDate, onDateChange, onClose }: Date
             </div>
           ))}
           
+          {Array.from({ length: startOfMonth(currentMonth).getDay() }).map((_, index) => (
+            <div key={`empty-${index}`} className="py-1" />
+          ))}
+          
           {days.map(day => {
             const isSelected = isSameDay(day, tempSelectedDate);
             const isDayToday = isToday(day);
