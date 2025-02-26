@@ -439,7 +439,7 @@ export default function Statistics() {
                             : selectedExercises.filter(name => name !== exercise.name);
                           handleExerciseSelectionChange(newSelected);
                         }}
-                        className="accent-[#dbf111]"
+                        className="checkbox-custom accent-[#dbf111]"
                       />
                       <label
                         htmlFor={`exercise-${exercise.name}`}
