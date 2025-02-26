@@ -79,8 +79,13 @@ export default function Statistics() {
   const [period, setPeriod] = useState<PeriodType>('week');
   const [exerciseData, setExerciseData] = useState<ExerciseData[]>([]);
   const [selectedMetric, setSelectedMetric] = useState<MetricType>('reps');
-  const [selectedExercises, setSelectedExercises] = useState<string[]>([]);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [selectedExercisesByMetric, setSelectedExercisesByMetric] = useState<Record<MetricType, string[]>>({
+    reps: [],
+    weight: [],
+    distance: [],
+    duration: []
+  });
 
   // Add this function to toggle dropdown
   const toggleDropdown = () => {
@@ -104,11 +109,15 @@ export default function Statistics() {
     fetchStatistics();
   }, [period, selectedMetric]);
 
+  // Update this useEffect to only set initial selections if they haven't been set yet
   useEffect(() => {
-    if (exerciseData.length > 0) {
-      setSelectedExercises(exerciseData.map(ex => ex.name));
+    if (exerciseData.length > 0 && selectedExercisesByMetric[selectedMetric].length === 0) {
+      setSelectedExercisesByMetric(prev => ({
+        ...prev,
+        [selectedMetric]: exerciseData.map(ex => ex.name)
+      }));
     }
-  }, [exerciseData]);
+  }, [exerciseData, selectedMetric]);
 
   async function fetchStatistics() {
     const now = new Date();
@@ -206,8 +215,11 @@ export default function Statistics() {
 
     setExerciseData(filteredExerciseData);
 
-    // Ensure all exercises are selected by default
-    setSelectedExercises(filteredExerciseData.map(ex => ex.name));
+    // Remove this section that was resetting selections
+    // setSelectedExercisesByMetric(prev => ({
+    //   ...prev,
+    //   [selectedMetric]: filteredExerciseData.map(ex => ex.name)
+    // }));
 
     let totalSets = 0;
     let completedSets = 0;
@@ -228,18 +240,39 @@ export default function Statistics() {
   }
 
   function handleExerciseSelectionChange(selected: string[]) {
-    setSelectedExercises(selected);
+    setSelectedExercisesByMetric(prev => ({
+      ...prev,
+      [selectedMetric]: selected
+    }));
   }
 
   function handleSelectAll() {
-    setSelectedExercises(exerciseData.map(ex => ex.name));
+    setSelectedExercisesByMetric(prev => ({
+      ...prev,
+      [selectedMetric]: exerciseData.map(ex => ex.name)
+    }));
   }
 
   function handleDeselectAll() {
-    setSelectedExercises([]);
+    setSelectedExercisesByMetric(prev => ({
+      ...prev,
+      [selectedMetric]: []
+    }));
   }
 
-  const filteredExerciseData = exerciseData.filter(ex => selectedExercises.includes(ex.name));
+  // Add this function to get the count of selected exercises for the current metric
+  const getSelectedCount = () => {
+    const availableExercises = exerciseData.map(ex => ex.name);
+    return selectedExercisesByMetric[selectedMetric].filter(name => 
+      availableExercises.includes(name)
+    ).length;
+  };
+
+  const filteredExerciseData = exerciseData.filter(ex => 
+    selectedExercisesByMetric[selectedMetric].includes(ex.name)
+  );
+
+  const currentSelections = selectedExercisesByMetric[selectedMetric];
 
   const chartData = {
     labels: filteredExerciseData[0]?.data.map(d => format(d.date, 'MMM d')) || [],
@@ -429,88 +462,87 @@ export default function Statistics() {
                 </div>
               </div>
 
-              <div className="mb-4">
-                <h3 className="text-md font-semibold text-gray-900 dark:text-white mb-2">
-                  Select Exercises
-                </h3>
-                <div className="relative" id="exercise-dropdown">
-                  <button
-                    onClick={toggleDropdown}
-                    className="w-full px-4 py-2 text-left bg-white dark:bg-gray-800 border dark:border-gray-600 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111] text-gray-900 dark:text-gray-100"
-                  >
-                    <div className="flex justify-between items-center">
-                      <span>
-                        {selectedExercises.length === 0
-                          ? 'Select exercises'
-                          : `${selectedExercises.length} exercise${
-                              selectedExercises.length === 1 ? '' : 's'
-                            } selected`}
-                      </span>
-                      <svg
-                        className={`w-5 h-5 transition-transform ${
-                          isDropdownOpen ? 'transform rotate-180' : ''
-                        }`}
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M19 9l-7 7-7-7"
-                        />
-                      </svg>
-                    </div>
-                  </button>
+              {exerciseData.length > 0 && (
+                <div className="mb-4">
+                  <div className="relative" id="exercise-dropdown">
+                    <button
+                      onClick={toggleDropdown}
+                      className="w-full px-4 py-2 text-left bg-white dark:bg-gray-800 border dark:border-gray-600 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111] text-gray-900 dark:text-gray-100"
+                    >
+                      <div className="flex justify-between items-center">
+                        <span>
+                          {getSelectedCount() === 0
+                            ? 'Select exercises'
+                            : `${getSelectedCount()} exercise${
+                                getSelectedCount() === 1 ? '' : 's'
+                              } selected`}
+                        </span>
+                        <svg
+                          className={`w-5 h-5 transition-transform ${
+                            isDropdownOpen ? 'transform rotate-180' : ''
+                          }`}
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 9l-7 7-7-7"
+                          />
+                        </svg>
+                      </div>
+                    </button>
 
-                  {isDropdownOpen && (
-                    <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border dark:border-gray-600 rounded-lg shadow-lg max-h-60 overflow-auto">
-                      <div className="sticky top-0 bg-white dark:bg-gray-800 border-b dark:border-gray-600 p-2 flex gap-2">
-                        <button
-                          onClick={handleSelectAll}
-                          className="flex-1 px-3 py-1 text-sm bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600"
-                        >
-                          Select All
-                        </button>
-                        <button
-                          onClick={handleDeselectAll}
-                          className="flex-1 px-3 py-1 text-sm bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600"
-                        >
-                          Deselect All
-                        </button>
-                      </div>
-                      <div className="p-2">
-                        {exerciseData.map(exercise => (
-                          <div
-                            key={exercise.name}
-                            className="flex items-center px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                    {isDropdownOpen && (
+                      <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border dark:border-gray-600 rounded-lg shadow-lg max-h-60 overflow-auto">
+                        <div className="sticky top-0 bg-white dark:bg-gray-800 border-b dark:border-gray-600 p-2 flex gap-2">
+                          <button
+                            onClick={handleSelectAll}
+                            className="flex-1 px-3 py-1 text-sm bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600"
                           >
-                            <input
-                              type="checkbox"
-                              id={`exercise-${exercise.name}`}
-                              checked={selectedExercises.includes(exercise.name)}
-                              onChange={(e) => {
-                                const newSelected = e.target.checked
-                                  ? [...selectedExercises, exercise.name]
-                                  : selectedExercises.filter(name => name !== exercise.name);
-                                handleExerciseSelectionChange(newSelected);
-                              }}
-                              className="checkbox-custom accent-[#dbf111]"
-                            />
-                            <label
-                              htmlFor={`exercise-${exercise.name}`}
-                              className="ml-2 text-sm text-gray-600 dark:text-gray-300 cursor-pointer"
+                            Select All
+                          </button>
+                          <button
+                            onClick={handleDeselectAll}
+                            className="flex-1 px-3 py-1 text-sm bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600"
+                          >
+                            Deselect All
+                          </button>
+                        </div>
+                        <div className="p-2">
+                          {exerciseData.map(exercise => (
+                            <div
+                              key={exercise.name}
+                              className="flex items-center px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
                             >
-                              {exercise.name}
-                            </label>
-                          </div>
-                        ))}
+                              <input
+                                type="checkbox"
+                                id={`exercise-${exercise.name}`}
+                                checked={currentSelections.includes(exercise.name)}
+                                onChange={(e) => {
+                                  const newSelected = e.target.checked
+                                    ? [...currentSelections, exercise.name]
+                                    : currentSelections.filter(name => name !== exercise.name);
+                                  handleExerciseSelectionChange(newSelected);
+                                }}
+                                className="checkbox-custom accent-[#dbf111]"
+                              />
+                              <label
+                                htmlFor={`exercise-${exercise.name}`}
+                                className="ml-2 text-sm text-gray-600 dark:text-gray-300 cursor-pointer"
+                              >
+                                {exercise.name}
+                              </label>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
 
               <div className="h-[400px] sm:h-[500px]">
                 {filteredExerciseData.length > 0 ? (
