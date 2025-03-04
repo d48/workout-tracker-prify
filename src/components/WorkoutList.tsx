@@ -727,28 +727,35 @@ export default function WorkoutList() {
                             </p>
                           )}
                         </div>
-                        <div className="workout-menu relative ml-4 pt-1 pr-1">
+                        <div className="workout-menu relative ml-4">
                           <button
                             onClick={(e) => toggleMenu(workout.id, e)}
-                            className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+                            className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white p-3 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
                             title="Workout options"
+                            aria-label="Workout options"
                           >
                             <EllipsisVerticalIcon className="h-5 w-5" />
                           </button>
                           
                           {openMenuId === workout.id && (
-                            <div className="absolute right-0 top-full mt-1 w-40 bg-white dark:bg-gray-800 rounded-md shadow-lg z-10 border border-gray-200 dark:border-gray-600 dark:shadow-[0_0_10px_rgba(219,241,17,0.15)]">
+                            <div className="absolute top-10 right-0 z-50 w-40 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-600 dark:shadow-[0_0_10px_rgba(219,241,17,0.15)]">
                               <div className="py-1">
                                 <button
-                                  onClick={(e) => duplicateWorkout(workout, e)}
-                                  className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    duplicateWorkout(workout, e);
+                                  }}
+                                  className="w-full text-left px-4 py-3 text-sm text-gray-700 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
                                 >
                                   <DocumentDuplicateIcon className="h-4 w-4 mr-2" />
                                   Duplicate
                                 </button>
                                 <button
-                                  onClick={(e) => shareWorkout(workout, e)}
-                                  className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    shareWorkout(workout, e);
+                                  }}
+                                  className="w-full text-left px-4 py-3 text-sm text-gray-700 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
                                 >
                                   <ShareIcon className="h-4 w-4 mr-2" />
                                   Share
@@ -759,7 +766,7 @@ export default function WorkoutList() {
                                     setOpenMenuId(null);
                                     deleteWorkout(workout.id);
                                   }}
-                                  className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
+                                  className="w-full text-left px-4 py-3 text-sm text-gray-700 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
                                 >
                                   <TrashIcon className="h-4 w-4 mr-2" />
                                   Delete
