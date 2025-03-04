@@ -408,7 +408,7 @@ export default function WorkoutList() {
             (set.weight !== null &&
               `${set.weight} lbs`.toLowerCase().includes(term)) ||
             (set.distance !== null &&
-              `${set.distance.toFixed(1)} mi`.toLowerCase().includes(term)) ||
+              `${set.distance} mi`.toLowerCase().includes(term)) ||
             (set.duration !== undefined &&
               set.duration !== null &&
               `${set.duration} min`.toLowerCase().includes(term))
@@ -418,9 +418,7 @@ export default function WorkoutList() {
         (stats.maxWeight !== null &&
           `${stats.maxWeight} lbs`.toLowerCase().includes(term)) ||
         (stats.totalDistance !== null &&
-          `${stats.totalDistance.toFixed(1)} mi`
-            .toLowerCase()
-            .includes(term)) ||
+          `${stats.totalDistance} mi`.toLowerCase().includes(term)) ||
         (stats.totalDuration !== null &&
           `${stats.totalDuration} min`.toLowerCase().includes(term))
       );
@@ -846,7 +844,7 @@ export default function WorkoutList() {
                                   {stats.totalDistance !== null && (
                                     <span>
                                       {highlightText(
-                                        `${stats.totalDistance.toFixed(1)} mi`,
+                                        `${stats.totalDistance} mi`,
                                         searchTerm
                                       )}
                                     </span>
