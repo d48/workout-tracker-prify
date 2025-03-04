@@ -15,7 +15,8 @@ import {
   ShareIcon,
   DocumentDuplicateIcon,
   ChevronLeftIcon,
-  ChevronRightIcon
+  ChevronRightIcon,
+  EllipsisVerticalIcon
 } from '@heroicons/react/24/outline';
 import { supabase } from '../lib/supabase';
 import html2canvas from 'html2canvas';
@@ -75,6 +76,7 @@ export default function WorkoutList() {
   const [page, setPage] = useState(1);
   const [totalWorkouts, setTotalWorkouts] = useState(0);
   const [searchTerm, setSearchTerm] = useState('');
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const navigate = useNavigate();
   const workoutRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
@@ -612,6 +614,25 @@ export default function WorkoutList() {
     );
   };
 
+  // Add a click outside handler to close the dropdown
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (openMenuId && !(event.target as Element).closest('.workout-menu')) {
+        setOpenMenuId(null);
+      }
+    }
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [openMenuId]);
+
+  const toggleMenu = (workoutId: string, event: React.MouseEvent) => {
+    event.stopPropagation();
+    setOpenMenuId(openMenuId === workoutId ? null : workoutId);
+  };
+
   if (loading) {
     return (
       <>
@@ -706,31 +727,46 @@ export default function WorkoutList() {
                             </p>
                           )}
                         </div>
-                        <div className="flex gap-5 action-buttons ml-4 pt-2 pr-2">
+                        <div className="workout-menu relative ml-4 pt-1 pr-1">
                           <button
-                            onClick={(e) => duplicateWorkout(workout, e)}
-                            className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
-                            title="Duplicate workout"
+                            onClick={(e) => toggleMenu(workout.id, e)}
+                            className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+                            title="Workout options"
                           >
-                            <DocumentDuplicateIcon className="h-5 w-5" />
+                            <EllipsisVerticalIcon className="h-5 w-5" />
                           </button>
-                          <button
-                            onClick={(e) => shareWorkout(workout, e)}
-                            className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
-                            title="Share workout"
-                          >
-                            <ShareIcon className="h-5 w-5" />
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              deleteWorkout(workout.id);
-                            }}
-                            className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
-                            title="Delete workout"
-                          >
-                            <TrashIcon className="h-5 w-5" />
-                          </button>
+                          
+                          {openMenuId === workout.id && (
+                            <div className="absolute right-0 top-full mt-1 w-30 bg-white dark:bg-gray-700 rounded-md shadow-lg z-10 border border-gray-200 dark:border-gray-600">
+                              <div className="py-1">
+                                <button
+                                  onClick={(e) => duplicateWorkout(workout, e)}
+                                  className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 flex items-center"
+                                >
+                                  <DocumentDuplicateIcon className="h-4 w-4 mr-2" />
+                                  Duplicate
+                                </button>
+                                <button
+                                  onClick={(e) => shareWorkout(workout, e)}
+                                  className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 flex items-center"
+                                >
+                                  <ShareIcon className="h-4 w-4 mr-2" />
+                                  Share
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setOpenMenuId(null);
+                                    deleteWorkout(workout.id);
+                                  }}
+                                  className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 flex items-center"
+                                >
+                                  <TrashIcon className="h-4 w-4 mr-2" />
+                                  Delete
+                                </button>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
 
