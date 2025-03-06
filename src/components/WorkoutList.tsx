@@ -95,11 +95,13 @@ export default function WorkoutList() {
             notes,
             icon_name,
             sets (
+              id,
               reps,
               weight,
               distance,
               duration,
-              completed
+              completed,
+              created_at
             )
           )
         `,
@@ -144,13 +146,23 @@ export default function WorkoutList() {
 
       if (error) throw error;
 
-      // Sort exercises alphabetically within each workout
+      // Sort exercises alphabetically within each workout, but maintain set order by created_at
       const sortedWorkouts =
         data?.map((workout) => ({
           ...workout,
-          exercises: [...workout.exercises].sort((a, b) =>
-            a.name.localeCompare(b.name)
-          )
+          exercises: [...workout.exercises]
+            .sort((a, b) => a.name.localeCompare(b.name))
+            .map((exercise) => ({
+              ...exercise,
+              sets: [...exercise.sets].sort((a, b) => {
+                // First try to sort by created_at timestamp if available
+                if (a.created_at && b.created_at) {
+                  return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+                }
+                // Fall back to sorting by ID which is usually sequential
+                return a.id.localeCompare(b.id);
+              })
+            }))
         })) || [];
 
       setWorkouts(sortedWorkouts);
