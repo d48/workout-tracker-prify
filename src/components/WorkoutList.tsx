@@ -247,6 +247,12 @@ export default function WorkoutList() {
 
   async function shareWorkout(workout: Workout, event: React.MouseEvent) {
     event.stopPropagation();
+    
+    // Close the menu first to ensure it doesn't appear in the image
+    setOpenMenuId(null);
+    
+    // Wait a moment for the menu to disappear from DOM before taking the snapshot
+    await new Promise(resolve => setTimeout(resolve, 50));
 
     const workoutCard = workoutRefs.current[workout.id];
     if (!workoutCard) return;
@@ -295,8 +301,10 @@ export default function WorkoutList() {
       clone.style.maxHeight = 'none';
       clone.style.overflow = 'visible';
 
-      const actionButtons = clone.querySelectorAll('.action-buttons');
+      // Remove action buttons and any menus from the clone
+      const actionButtons = clone.querySelectorAll('.workout-menu');
       actionButtons.forEach((button) => button.remove());
+      
       wrapper.appendChild(clone);
       document.body.appendChild(wrapper);
 
