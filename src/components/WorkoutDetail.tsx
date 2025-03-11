@@ -84,6 +84,7 @@ export default function WorkoutDetail() {
   const [sortOption, setSortOption] = useState(
     localStorage.getItem('sortOption') || SORT_OPTIONS.DEFAULT
   );
+  const [unsavedChanges, setUnsavedChanges] = useState(false);
 
   useEffect(() => {
     if (titleInputRef.current) {
@@ -112,20 +113,10 @@ export default function WorkoutDetail() {
   );
 
   const debouncedSaveSet = useCallback(
-    debounce(async (setId: string, updates: Partial<Set>) => {
-      try {
-        const { error } = await supabase
-          .from('sets')
-          .update(updates)
-          .eq('id', setId);
-
-        if (error) throw error;
-      } catch (error) {
-        console.error('Error updating set:', error);
-        if (error instanceof Error) {
-          setError(error.message);
-        }
-      }
+    debounce(async (_: string, _updates: Partial<Set>) => {
+      // Don't auto-save to the database
+      // Instead, just track that there are unsaved changes
+      setUnsavedChanges(true);
     }, 500),
     []
   );
@@ -273,7 +264,8 @@ export default function WorkoutDetail() {
       const currentWorkoutId = await ensureWorkoutExists();
       const isoDate = new Date(workout.date).toISOString();
 
-      const { error } = await supabase
+      // First update the workout details
+      const { error: workoutError } = await supabase
         .from('workouts')
         .update({
           name: workout.name,
@@ -282,7 +274,37 @@ export default function WorkoutDetail() {
         })
         .eq('id', currentWorkoutId);
 
-      if (error) throw error;
+      if (workoutError) throw workoutError;
+      
+      // Then update all exercises and their sets
+      for (const exercise of workout.exercises) {
+        // Update exercise notes if needed
+        if (exercise.notes) {
+          await supabase
+            .from('exercises')
+            .update({ notes: exercise.notes })
+            .eq('id', exercise.id);
+        }
+        
+        // Update all sets for this exercise
+        for (const set of exercise.sets) {
+          await supabase
+            .from('sets')
+            .update({
+              reps: set.reps,
+              weight: set.weight,
+              distance: set.distance,
+              duration: set.duration,
+              completed: set.completed
+            })
+            .eq('id', set.id);
+        }
+      }
+
+      // Reset unsaved changes flag
+      setUnsavedChanges(false);
+      
+      // Navigate home
       navigate('/');
     } catch (error) {
       console.error('Error saving workout:', error);
@@ -523,7 +545,8 @@ export default function WorkoutDetail() {
       )
     }));
 
-    debouncedSaveSet(setId, updates);
+    // Mark that there are unsaved changes
+    setUnsavedChanges(true);
   }
 
   async function deleteExercise(exerciseId: string) {
@@ -617,6 +640,32 @@ export default function WorkoutDetail() {
     };
   }, [debouncedSaveNotes, debouncedSaveSet, debouncedSaveWorkoutDetails]);
 
+  // Add a component to show unsaved changes status (optional)
+  const UnsavedChangesIndicator = () => {
+    if (!unsavedChanges) return null;
+    
+    return (
+      <div className="fixed top-16 left-0 right-0 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 text-center py-1 text-sm z-10">
+        You have unsaved changes
+      </div>
+    );
+  };
+
+  // Add unsaved changes warning if user tries to leave
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (unsavedChanges) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [unsavedChanges]);
+
   if (loading) {
     return (
       <>
@@ -631,6 +680,7 @@ export default function WorkoutDetail() {
   return (
     <>
       <Header headerType="detail" />
+      {unsavedChanges && <UnsavedChangesIndicator />}
       <div className="p-4 pb-32">
         <div className="max-w-lg mx-auto">
           {error && (
@@ -1071,7 +1121,9 @@ export default function WorkoutDetail() {
             <button
               onClick={saveWorkout}
               disabled={loading}
-              className="bg-[#dbf111] text-black px-6 py-3 rounded-lg shadow-lg hover:bg-[#c5d60f] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className={`bg-[#dbf111] text-black px-6 py-3 rounded-lg shadow-lg hover:bg-[#c5d60f] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 ${
+                unsavedChanges ? 'animate-pulse' : ''
+              }`}
             >
               <DocumentCheckIcon className="h-5 w-5" />
               Save
