@@ -88,6 +88,9 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
+      // Don't close the modal if the icon selector is open
+      if (showIconSelector) return;
+      
       if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
         onClose();
       }
@@ -97,7 +100,7 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [onClose]);
+  }, [onClose, showIconSelector]); // Add showIconSelector dependency
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -176,7 +179,11 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
       return;
     }
     if (data) {
-      setExercises(data);
+      // Ensure exercises are sorted client-side too (in case server sort is inconsistent)
+      const sortedExercises = [...data].sort((a, b) => 
+        a.name.toLowerCase().localeCompare(b.name.toLowerCase())
+      );
+      setExercises(sortedExercises);
     }
   }
 
@@ -342,10 +349,12 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
   );
 
   // Then filter the uniqueExercises as needed:
-  const filteredExercises = uniqueExercises.filter(exercise => {
-    const matchesCategory = !selectedCategory || exercise.category_id === selectedCategory;
-    return matchesCategory;
-  });
+  const filteredExercises = uniqueExercises
+    .filter(exercise => {
+      const matchesCategory = !selectedCategory || exercise.category_id === selectedCategory;
+      return matchesCategory;
+    })
+    .sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
 
   // Add a function to find the Uncategorized category ID
   const getUncategorizedCategoryId = (): string | null => {
@@ -420,7 +429,10 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
   
         if (error) throw error;
         if (data) {
-          setExercises(exercises.map(ex => ex.id === data.id ? data : ex));
+          // Sort exercises after updating
+          const updatedExercises = [...exercises.filter(ex => ex.id !== data.id), data]
+            .sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+          setExercises(updatedExercises);
         }
       } else {
         const { data, error } = await supabase
@@ -437,7 +449,10 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
   
         if (error) throw error;
         if (data) {
-          setExercises([...exercises, data]);
+          // Sort exercises after adding new one
+          const updatedExercises = [...exercises, data]
+            .sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+          setExercises(updatedExercises);
         }
       }
       resetForm();
@@ -524,20 +539,34 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
   };
 
   const IconSelector = () => (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-md max-height-[80vh] overflow-hidden flex flex-col">
+    <div 
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div 
+        className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-md max-height-[80vh] overflow-hidden flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="p-4 border-b dark:border-gray-700">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Select Icon</h3>
-            <button onClick={() => setShowIconSelector(false)} className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">×</button>
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowIconSelector(false);
+              }} 
+              className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+            >
+              ×
+            </button>
           </div>
-
         </div>
         <div className="p-4 overflow-y-auto grid grid-cols-4 gap-4">
           {filteredIcons.map(icon => (
             <button
               key={icon.name}
-              onClick={() => {
+              onClick={(e) => {
+                e.stopPropagation();
                 setSelectedIcon(icon);
                 setNewExercise(prev => ({ ...prev, icon_name: icon.name }));
                 setShowIconSelector(false);
@@ -737,7 +766,10 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
                   />
                   <button
                     type="button"
-                    onClick={() => setShowIconSelector(true)}
+                    onClick={(e) => {
+                      e.stopPropagation(); // Stop event propagation
+                      setShowIconSelector(true);
+                    }}
                     className="p-2 border dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700"
                   >
                     <FontAwesomeIcon icon={selectedIcon.iconDef} className="h-6 w-6 text-gray-600 dark:text-gray-300" />
