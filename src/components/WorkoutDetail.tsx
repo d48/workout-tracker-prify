@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   PlusIcon,
@@ -30,19 +30,6 @@ type WorkoutResponse = Database['public']['Tables']['workouts']['Row'] & {
     sets: Database['public']['Tables']['sets']['Row'][];
   })[];
 };
-
-function debounce<T extends (...args: any[]) => any>(
-  func: T,
-  wait: number
-): ((...args: Parameters<T>) => void) & { cancel: () => void } {
-  let timeout: NodeJS.Timeout;
-  const debounced = (...args: Parameters<T>) => {
-    clearTimeout(timeout);
-    timeout = setTimeout(() => func(...args), wait);
-  };
-  debounced.cancel = () => clearTimeout(timeout);
-  return debounced;
-}
 
 export function isValidUrl(url: string): boolean {
   try {
@@ -85,6 +72,7 @@ export default function WorkoutDetail() {
     localStorage.getItem('sortOption') || SORT_OPTIONS.DEFAULT
   );
   const [unsavedChanges, setUnsavedChanges] = useState(false);
+  const [isSaving, setIsSaving] = useState(false); // New state for saving status
 
   useEffect(() => {
     if (titleInputRef.current) {
@@ -92,68 +80,6 @@ export default function WorkoutDetail() {
       titleInputRef.current.style.height = `${titleInputRef.current.scrollHeight}px`;
     }
   }, [workout.name]);
-
-  const debouncedSaveNotes = useCallback(
-    debounce(async (exerciseId: string, notes: string) => {
-      try {
-        const { error } = await supabase
-          .from('exercises')
-          .update({ notes })
-          .eq('id', exerciseId);
-
-        if (error) throw error;
-      } catch (error) {
-        console.error('Error saving exercise notes:', error);
-        if (error instanceof Error) {
-          setError(error.message);
-        }
-      }
-    }, 500),
-    []
-  );
-
-  const debouncedSaveSet = useCallback(
-    debounce(async (_: string, _updates: Partial<Set>) => {
-      // Don't auto-save to the database
-      // Instead, just track that there are unsaved changes
-      setUnsavedChanges(true);
-    }, 500),
-    []
-  );
-
-  const debouncedSaveWorkoutDetails = useCallback(
-    debounce(
-      async (
-        updates: Partial<{ name: string; date: string; notes: string }>
-      ) => {
-        if (!workoutId) return;
-
-        try {
-          // Convert date string to ISO format if it exists
-          const formattedUpdates: Record<string, any> = {};
-          if (updates.name !== undefined) formattedUpdates.name = updates.name;
-          if (updates.notes !== undefined)
-            formattedUpdates.notes = updates.notes || null;
-          if (updates.date !== undefined)
-            formattedUpdates.date = new Date(updates.date).toISOString();
-
-          const { error } = await supabase
-            .from('workouts')
-            .update(formattedUpdates)
-            .eq('id', workoutId);
-
-          if (error) throw error;
-        } catch (error) {
-          console.error('Error updating workout details:', error);
-          if (error instanceof Error) {
-            setError(error.message);
-          }
-        }
-      },
-      500
-    ),
-    [workoutId]
-  );
 
   useEffect(() => {
     if (id === 'new') {
@@ -257,14 +183,15 @@ export default function WorkoutDetail() {
   }
 
   async function saveWorkout() {
-    if (loading) return;
+    if (loading || isSaving) return; // Prevent saving if already saving or loading
+    setIsSaving(true); // Set saving state to true
     setLoading(true);
 
     try {
       const currentWorkoutId = await ensureWorkoutExists();
       const isoDate = new Date(workout.date).toISOString();
 
-      // First update the workout details
+      // Update workout details
       const { error: workoutError } = await supabase
         .from('workouts')
         .update({
@@ -275,41 +202,109 @@ export default function WorkoutDetail() {
         .eq('id', currentWorkoutId);
 
       if (workoutError) throw workoutError;
-      
-      // Then update all exercises and their sets
+
+      // Update exercises and their sets
       for (const exercise of workout.exercises) {
-        // Update exercise notes if needed
-        if (exercise.notes) {
-          await supabase
+        // Update or insert exercise
+        if (exercise.id) {
+          const { error: exerciseError } = await supabase
             .from('exercises')
-            .update({ notes: exercise.notes })
-            .eq('id', exercise.id);
-        }
-        
-        // Update all sets for this exercise
-        for (const set of exercise.sets) {
-          await supabase
-            .from('sets')
             .update({
-              reps: set.reps,
-              weight: set.weight,
-              distance: set.distance,
-              duration: set.duration,
-              completed: set.completed
+              name: exercise.name,
+              notes: exercise.notes || null,
+              icon_name: exercise.icon_name,
+              sample_url: exercise.sample_url || null
             })
-            .eq('id', set.id);
+            .eq('id', exercise.id);
+
+          if (exerciseError) throw exerciseError;
+        } else {
+          const { data: newExercise, error: insertError } = await supabase
+            .from('exercises')
+            .insert({
+              workout_id: currentWorkoutId,
+              name: exercise.name,
+              notes: exercise.notes || null,
+              icon_name: exercise.icon_name,
+              sample_url: exercise.sample_url || null
+            })
+            .select()
+            .single();
+
+          if (insertError) throw insertError;
+          exercise.id = newExercise.id;
         }
+
+        // Update or insert sets
+        for (const set of exercise.sets) {
+          if (set.id) {
+            const { error: setError } = await supabase
+              .from('sets')
+              .update({
+                reps: set.reps,
+                weight: set.weight,
+                distance: set.distance,
+                duration: set.duration,
+                completed: set.completed
+              })
+              .eq('id', set.id);
+
+            if (setError) throw setError;
+          } else {
+            const { data: newSet, error: insertSetError } = await supabase
+              .from('sets')
+              .insert({
+                exercise_id: exercise.id,
+                reps: set.reps,
+                weight: set.weight,
+                distance: set.distance,
+                duration: set.duration,
+                completed: set.completed
+              })
+              .select()
+              .single();
+
+            if (insertSetError) throw insertSetError;
+            set.id = newSet.id;
+          }
+        }
+      }
+
+      // Remove deleted exercises and sets
+      const existingExerciseIds = workout.exercises.map((ex) => ex.id).filter((id): id is string => !!id);
+      const formattedExerciseIds = `(${existingExerciseIds.join(',')})`; // Remove single quotes
+
+      const { error: deleteExercisesError } = await supabase
+        .from('exercises')
+        .delete()
+        .eq('workout_id', currentWorkoutId)
+        .not('id', 'in', formattedExerciseIds); // Use formatted string
+
+      if (deleteExercisesError) throw deleteExercisesError;
+
+      for (const exercise of workout.exercises) {
+        const existingSetIds = exercise.sets.map((set) => set.id).filter((id): id is string => !!id);
+        const formattedSetIds = `(${existingSetIds.join(',')})`; // Remove single quotes
+
+        const { error: deleteSetsError } = await supabase
+          .from('sets')
+          .delete()
+          .eq('exercise_id', exercise.id)
+          .not('id', 'in', formattedSetIds); // Use formatted string
+
+        if (deleteSetsError) throw deleteSetsError;
       }
 
       // Reset unsaved changes flag
       setUnsavedChanges(false);
-      
+
       // Navigate home
       navigate('/');
     } catch (error) {
       console.error('Error saving workout:', error);
       setError('Failed to save workout. Please try again.');
     } finally {
+      setIsSaving(false); // Reset saving state
       setLoading(false);
     }
   }
@@ -522,8 +517,6 @@ export default function WorkoutDetail() {
         ex.id === exerciseId ? { ...ex, notes } : ex
       )
     }));
-
-    debouncedSaveNotes(exerciseId, notes);
   }
 
   function handleSetChange(
@@ -581,17 +574,11 @@ export default function WorkoutDetail() {
   function handleNameChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
     const newName = e.target.value;
     setWorkout((prev) => ({ ...prev, name: newName }));
-    if (workoutId) {
-      debouncedSaveWorkoutDetails({ name: newName });
-    }
   }
 
   function handleNotesChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
     const newNotes = e.target.value;
     setWorkout((prev) => ({ ...prev, notes: newNotes }));
-    if (workoutId) {
-      debouncedSaveWorkoutDetails({ notes: newNotes });
-    }
   }
 
   function toggleDatePicker() {
@@ -600,9 +587,6 @@ export default function WorkoutDetail() {
 
   function clearWorkoutNotes() {
     setWorkout((prev) => ({ ...prev, notes: '' }));
-    if (workoutId) {
-      debouncedSaveWorkoutDetails({ notes: '' });
-    }
   }
 
   function clearExerciseNotes(exerciseId: string) {
@@ -612,7 +596,6 @@ export default function WorkoutDetail() {
         ex.id === exerciseId ? { ...ex, notes: '' } : ex
       )
     }));
-    debouncedSaveNotes(exerciseId, '');
   }
 
   function handleSortChange(option: string) {
@@ -630,15 +613,6 @@ export default function WorkoutDetail() {
         return exercises;
     }
   }
-
-  useEffect(() => {
-    // Cleanup debounced functions on unmount
-    return () => {
-      debouncedSaveNotes.cancel();
-      debouncedSaveSet.cancel();
-      debouncedSaveWorkoutDetails.cancel();
-    };
-  }, [debouncedSaveNotes, debouncedSaveSet, debouncedSaveWorkoutDetails]);
 
   // Add a component to show unsaved changes status (optional)
   const UnsavedChangesIndicator = () => {
@@ -666,12 +640,23 @@ export default function WorkoutDetail() {
     };
   }, [unsavedChanges]);
 
-  if (loading) {
+  if (loading && !isSaving) {
     return (
       <>
         <Header headerType="detail" />
         <div className="pt-24 text-center text-gray-500 dark:text-gray-400">
           Loading workout...
+        </div>
+      </>
+    );
+  }
+
+  if (isSaving) {
+    return (
+      <>
+        <Header headerType="detail" />
+        <div className="pt-24 text-center text-gray-500 dark:text-gray-400">
+          Saving workout...
         </div>
       </>
     );
@@ -748,7 +733,6 @@ export default function WorkoutDetail() {
                     onDateChange={(date) => {
                       const formattedDate = format(date, "yyyy-MM-dd'T'HH:mm");
                       setWorkout((prev) => ({ ...prev, date: formattedDate }));
-                      debouncedSaveWorkoutDetails({ date: formattedDate });
                       setShowDatePicker(false);
                     }}
                     onClose={() => setShowDatePicker(false)}
