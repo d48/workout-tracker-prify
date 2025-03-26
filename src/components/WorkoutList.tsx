@@ -84,6 +84,18 @@ export default function WorkoutList() {
     fetchWorkouts();
   }, [filter, page]);
 
+  useEffect(() => {
+    const handleResetToPageOne = () => {
+      setPage(1);
+      window.scrollTo({ top: 0, behavior: 'smooth' }); // Scroll to top
+    };
+
+    window.addEventListener('resetToPageOne', handleResetToPageOne);
+    return () => {
+      window.removeEventListener('resetToPageOne', handleResetToPageOne);
+    };
+  }, []);
+
   async function fetchWorkouts() {
     try {
       let query = supabase.from('workouts').select(

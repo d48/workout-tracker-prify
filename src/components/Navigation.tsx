@@ -43,6 +43,12 @@ export default function Navigation() {
         <div className="flex justify-around py-3">
           <Link 
             to="/workouts" 
+            onClick={() => {
+              if (location.pathname === '/workouts') {
+                const resetToPageOneEvent = new CustomEvent('resetToPageOne');
+                window.dispatchEvent(resetToPageOneEvent);
+              }
+            }}
             className={`flex flex-col items-center min-w-[100px] h-[64px] justify-center ${
               location.pathname === '/workouts' 
                 ? 'text-black dark:text-black bg-[#dbf111] px-4 rounded-lg' 
