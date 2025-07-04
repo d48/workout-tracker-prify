@@ -47,6 +47,7 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
   const [selectedIcon, setSelectedIcon] = useState<ExerciseIcon>(exerciseIcons[0]);
   const [showNewCategoryForm, setShowNewCategoryForm] = useState(false);
   const [showNewExerciseForm, setShowNewExerciseForm] = useState(false);
+  const [exerciseSearchTerm, setExerciseSearchTerm] = useState('');
   const newExerciseFormRef = useRef<HTMLDivElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
   const newCategoryFormRef = useRef<HTMLDivElement>(null);
@@ -352,7 +353,9 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
   const filteredExercises = uniqueExercises
     .filter(exercise => {
       const matchesCategory = !selectedCategory || exercise.category_id === selectedCategory;
-      return matchesCategory;
+      const matchesSearch = !exerciseSearchTerm || 
+        exercise.name.toLowerCase().includes(exerciseSearchTerm.toLowerCase());
+      return matchesCategory && matchesSearch;
     })
     .sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
 
@@ -745,6 +748,32 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
             </div>
           )}
 
+          {/* Exercise Search Input - Fixed at top of exercise list */}
+          <div className="sticky top-0 bg-white dark:bg-gray-800 border-b dark:border-gray-700 p-4 z-20">
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search exercises..."
+                value={exerciseSearchTerm}
+                onChange={(e) => setExerciseSearchTerm(e.target.value)}
+                className="w-full p-3 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111] pr-10"
+              />
+              {exerciseSearchTerm && (
+                <button
+                  onClick={() => setExerciseSearchTerm('')}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  aria-label="Clear search"
+                >
+                  <XMarkIcon className="h-5 w-5" />
+                </button>
+              )}
+            </div>
+            {exerciseSearchTerm && (
+              <div className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                {filteredExercises.length} exercise{filteredExercises.length !== 1 ? 's' : ''} found
+              </div>
+            )}
+          </div>
 <div className="p-4 border-t dark:border-gray-700" ref={newExerciseFormRef}>
             {!showNewExerciseForm ? (
               <button
@@ -892,6 +921,17 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
           </div>
 
           <div className="p-4 space-y-2">
+            {filteredExercises.length === 0 && exerciseSearchTerm ? (
+              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                <p className="mb-2">No exercises found for "{exerciseSearchTerm}"</p>
+                <button
+                  onClick={() => setExerciseSearchTerm('')}
+                  className="text-[#dbf111] hover:underline text-sm"
+                >
+                  Clear search to see all exercises
+                </button>
+              </div>
+            ) : (
             {filteredExercises.map(exercise => (
               <div
                 key={exercise.id}
@@ -925,6 +965,7 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
                 )}
               </div>
             ))}
+            )}
           </div>
 
 
