@@ -107,50 +107,80 @@ export async function checkIfExerciseHasRecords(
   exerciseName: string,
   stats: ExerciseStats
 ): Promise<string[]> {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return [];
+  try {
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    if (authError) {
+      console.error('Authentication error:', authError);
+      return [];
+    }
+    
+    if (!user) {
+      console.warn('No authenticated user found');
+      return [];
+    }
 
-  const { data: records, error } = await supabase
-    .from('personal_records')
-    .select('record_type, value')
-    .eq('user_id', user.id)
-    .eq('exercise_name', exerciseName);
+    const { data: records, error } = await supabase
+      .from('personal_records')
+      .select('record_type, value')
+      .eq('user_id', user.id)
+      .eq('exercise_name', exerciseName);
 
-  if (error) {
-    console.error('Error fetching personal records:', error);
+    if (error) {
+      console.error('Error fetching personal records:', error);
+      console.error('Error details:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      });
+      return [];
+    }
+  
+    if (!records || records.length === 0) return [];
+
+    const recordTypes: string[] = [];
+  
+    records.forEach(record => {
+      let currentValue: number | null = null;
+    
+      switch (record.record_type) {
+        case 'reps':
+          currentValue = stats.totalReps;
+          break;
+        case 'weight':
+          currentValue = stats.maxWeight;
+          break;
+        case 'distance':
+          currentValue = stats.totalDistance;
+          break;
+        case 'duration':
+          currentValue = stats.totalDuration;
+          break;
+      }
+    
+      // Only show trophy if the current exercise stats exactly match the personal record value
+      // Use Number() to ensure proper comparison of numeric values
+      if (currentValue !== null && Number(currentValue) === Number(record.value)) {
+        recordTypes.push(record.record_type);
+      }
+    });
+
+    return recordTypes;
+  } catch (error) {
+    console.error('Unexpected error in checkIfExerciseHasRecords:', error);
+    
+    // Check if it's a network error
+    if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+      console.error('Network error detected. Please check:');
+      console.error('1. Your internet connection');
+      console.error('2. Supabase project status');
+      console.error('3. Environment variables (VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY)');
+      console.error('4. Restart your development server');
+    }
+    
     return [];
   }
-  
-  if (!records || records.length === 0) return [];
-
-  const recordTypes: string[] = [];
-  
-  records.forEach(record => {
-    let currentValue: number | null = null;
-    
-    switch (record.record_type) {
-      case 'reps':
-        currentValue = stats.totalReps;
-        break;
-      case 'weight':
-        currentValue = stats.maxWeight;
-        break;
-      case 'distance':
-        currentValue = stats.totalDistance;
-        break;
-      case 'duration':
-        currentValue = stats.totalDuration;
-        break;
-    }
-    
-    // Only show trophy if the current exercise stats exactly match the personal record value
-    // Use Number() to ensure proper comparison of numeric values
-    if (currentValue !== null && Number(currentValue) === Number(record.value)) {
-      recordTypes.push(record.record_type);
-    }
-  });
-
-  return recordTypes;
 }
 
 export async function getUserPersonalRecords(userId: string): Promise<PersonalRecord[]> {

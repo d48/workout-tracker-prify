@@ -4,11 +4,25 @@ import { Database } from '../types/supabase';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-console.log('Supabase URL:', supabaseUrl);
-console.log('Supabase Key exists:', !!supabaseKey);
+// Enhanced debugging for Supabase configuration
+console.log('Supabase Configuration Check:');
+console.log('- URL:', supabaseUrl ? `${supabaseUrl.substring(0, 20)}...` : 'MISSING');
+console.log('- Key exists:', !!supabaseKey);
+console.log('- Key length:', supabaseKey ? supabaseKey.length : 0);
 
 if (!supabaseUrl || !supabaseKey) {
-  throw new Error('Missing Supabase URL or Anon Key');
+  const missingVars = [];
+  if (!supabaseUrl) missingVars.push('VITE_SUPABASE_URL');
+  if (!supabaseKey) missingVars.push('VITE_SUPABASE_ANON_KEY');
+  
+  throw new Error(`Missing required environment variables: ${missingVars.join(', ')}. Please check your .env file and restart the development server.`);
+}
+
+// Validate URL format
+try {
+  new URL(supabaseUrl);
+} catch (error) {
+  throw new Error(`Invalid VITE_SUPABASE_URL format: ${supabaseUrl}. Please check your .env file.`);
 }
 
 export const supabase = createClient<Database>(supabaseUrl, supabaseKey, {
