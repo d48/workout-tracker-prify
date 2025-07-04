@@ -143,10 +143,17 @@ export default function Auth() {
       setLoading(true);
       setAuthInProgress(true);
 
-      // Determine the redirect URL based on the environment
-      const redirectToUrl = process.env.NODE_ENV === 'development'
-        ? 'http://localhost:5173/workouts'
-        : `${window.location.origin}/workouts`;
+      // For local development, we'll handle the redirect differently
+      const isLocalDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      
+      let redirectToUrl;
+      if (isLocalDev) {
+        // For local development, redirect to the current origin
+        redirectToUrl = `${window.location.origin}/workouts`;
+      } else {
+        // For production, use the production URL
+        redirectToUrl = `${window.location.origin}/workouts`;
+      }
 
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
