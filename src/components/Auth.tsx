@@ -143,41 +143,66 @@ export default function Auth() {
       setLoading(true);
       setAuthInProgress(true);
 
-      console.log('Starting Google OAuth...');
-      
-      // For local development, we'll handle the redirect differently
+      // Check if we're in local development
       const isLocalDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
       
-      let redirectToUrl;
       if (isLocalDev) {
-        // For local development, redirect to the current origin
-        redirectToUrl = `${window.location.origin}/workouts`;
-      } else {
-        // For production, use the production URL
-        redirectToUrl = `${window.location.origin}/workouts`;
-      }
-
-      console.log('Redirect URL:', redirectToUrl);
-      
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: redirectToUrl,
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent'
+        // For local development, use a simpler approach
+        // Create a test user session for development
+        const testEmail = 'test@example.com';
+        const testPassword = 'testpassword123';
+        
+        // Try to sign in with test credentials first
+        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+          email: testEmail,
+          password: testPassword,
+        });
+        
+        if (signInError && signInError.message === 'Invalid login credentials') {
+          // Test user doesn't exist, create it
+          const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+            email: testEmail,
+            password: testPassword,
+            options: {
+              emailRedirectTo: window.location.origin
+            }
+          });
+          
+          if (signUpError) {
+            throw signUpError;
           }
+          
+          if (signUpData.user) {
+            alert('Test user created! You can now sign in with test@example.com / testpassword123');
+            setEmail(testEmail);
+            setPassword(testPassword);
+            return;
+          }
+        } else if (signInError) {
+          throw signInError;
+        } else if (signInData.session) {
+          navigate('/workouts');
+          return;
         }
-      });
+      } else {
+        // For production, use Google OAuth
+        const { data, error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            redirectTo: `${window.location.origin}/workouts`,
+            queryParams: {
+              access_type: 'offline',
+              prompt: 'consent'
+            }
+          }
+        });
 
-      if (error) throw error;
+        if (error) throw error;
 
-      if (!data.url) {
-        throw new Error('No OAuth URL returned');
+        if (!data.url) {
+          throw new Error('No OAuth URL returned');
+        }
       }
-
-      console.log('Redirecting to Google OAuth...');
-      console.log('OAuth URL:', data.url);
     } catch (err) {
       const authError = err as AuthError;
       console.error('Google Sign-in error:', authError);
@@ -312,8 +337,19 @@ export default function Auth() {
                 fill="#EA4335"
               />
             </svg>
-            Sign in with Google
+            {window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+              ? 'Quick Dev Login' 
+              : 'Sign in with Google'
+            }
           </button>
+          
+          {(window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && (
+            <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+              <p className="text-sm text-blue-700 dark:text-blue-300">
+                <strong>Development Mode:</strong> Click "Quick Dev Login" to create/use a test account for local development.
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>
