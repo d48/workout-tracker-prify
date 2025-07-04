@@ -932,7 +932,7 @@ export default function ExerciseSelector({ onSelect, onClose }: ExerciseSelector
                 </button>
               </div>
             ) : (
-            {filteredExercises.map(exercise => (
+            filteredExercises.map(exercise => (
               <div
                 key={exercise.id}
                 className="flex justify-between items-center p-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
