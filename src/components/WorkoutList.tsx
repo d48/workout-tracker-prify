@@ -36,17 +36,28 @@ function TrophyDisplay({ exerciseName, stats }: { exerciseName: string, stats: a
   useEffect(() => {
     async function checkRecords() {
       try {
+        // Only check if we have valid stats
+        const hasValidStats = stats.totalReps > 0 || stats.maxWeight > 0 || 
+                             stats.totalDistance > 0 || stats.totalDuration > 0;
+        
+        if (!hasValidStats) {
+          setRecordTypes([]);
+          setLoading(false);
+          return;
+        }
+        
         const records = await checkIfExerciseHasRecords(exerciseName, stats);
         setRecordTypes(records);
       } catch (error) {
         console.error('Error checking exercise records:', error);
+        setRecordTypes([]);
       } finally {
         setLoading(false);
       }
     }
 
     checkRecords();
-  }, [exerciseName, stats]);
+  }, [exerciseName, stats.totalReps, stats.maxWeight, stats.totalDistance, stats.totalDuration]);
 
   if (loading || recordTypes.length === 0) {
     return null;

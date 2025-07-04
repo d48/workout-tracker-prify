@@ -110,13 +110,18 @@ export async function checkIfExerciseHasRecords(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return [];
 
-  const { data: records } = await supabase
+  const { data: records, error } = await supabase
     .from('personal_records')
     .select('record_type, value')
     .eq('user_id', user.id)
     .eq('exercise_name', exerciseName);
 
-  if (!records) return [];
+  if (error) {
+    console.error('Error fetching personal records:', error);
+    return [];
+  }
+  
+  if (!records || records.length === 0) return [];
 
   const recordTypes: string[] = [];
   
@@ -138,8 +143,9 @@ export async function checkIfExerciseHasRecords(
         break;
     }
     
-    // Only show trophy if the current exercise stats match the personal record value
-    if (currentValue !== null && currentValue === record.value) {
+    // Only show trophy if the current exercise stats exactly match the personal record value
+    // Use Number() to ensure proper comparison of numeric values
+    if (currentValue !== null && Number(currentValue) === Number(record.value)) {
       recordTypes.push(record.record_type);
     }
   });
