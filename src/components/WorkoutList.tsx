@@ -122,13 +122,14 @@ export default function WorkoutList() {
   const [totalWorkouts, setTotalWorkouts] = useState(0);
   const [searchTerm, setSearchTerm] = useState('');
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [searchLoading, setSearchLoading] = useState(false);
 
   const navigate = useNavigate();
   const workoutRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   useEffect(() => {
     fetchWorkouts();
-  }, [filter, page]);
+  }, [filter, page, searchTerm]);
 
   useEffect(() => {
     const handleResetToPageOne = () => {
@@ -142,8 +143,17 @@ export default function WorkoutList() {
     };
   }, []);
 
+  // Reset to page 1 when search term changes
+  useEffect(() => {
+    if (searchTerm) {
+      setPage(1);
+    }
+  }, [searchTerm]);
+
   async function fetchWorkouts() {
     try {
+      setSearchLoading(true);
+      
       // Add pagination for displayed workouts
       const from = (page - 1) * WORKOUTS_PER_PAGE;
       const to = from + WORKOUTS_PER_PAGE - 1;
@@ -170,7 +180,7 @@ export default function WorkoutList() {
         { count: 'exact' }
       );
 
-      // Apply date filters only to paginated query
+      // Apply date filters
       if (filter !== 'all') {
         let startDate: Date;
         let endDate: Date;
@@ -193,49 +203,201 @@ export default function WorkoutList() {
             endDate = new Date();
         }
 
-        // Only apply filters to the paginated query
         paginatedQuery = paginatedQuery
           .gte('date', startDate.toISOString())
           .lte('date', endDate.toISOString());
       }
 
-      // Execute paginated query
-      const paginatedResponse = await paginatedQuery.order('date', { ascending: false }).range(from, to);
+      // Apply search filters if search term exists
+      if (searchTerm.trim()) {
+        const searchPattern = `%${searchTerm.toLowerCase()}%`;
+        
+        // Use a more complex query that searches across workouts, exercises, and notes
+        // We'll use a subquery approach to find workouts that match our criteria
+        const { data: searchResults, count: searchCount } = await supabase.rpc(
+          'search_workouts_and_exercises',
+          {
+            search_term: searchTerm.toLowerCase(),
+            date_filter: filter,
+            limit_count: WORKOUTS_PER_PAGE,
+            offset_count: from
+          }
+        );
 
-      if (paginatedResponse.error) throw paginatedResponse.error;
+        if (searchResults) {
+          // Now fetch the full workout data for the matching workout IDs
+          const workoutIds = searchResults.map((result: any) => result.workout_id);
+          
+          if (workoutIds.length > 0) {
+            const { data: fullWorkouts } = await supabase
+              .from('workouts')
+              .select(`
+                *,
+                exercises (
+                  id,
+                  name,
+                  notes,
+                  icon_name,
+                  sets (
+                    id,
+                    reps,
+                    weight,
+                    distance,
+                    duration,
+                    completed,
+                    created_at
+                  )
+                )
+              `)
+              .in('id', workoutIds)
+              .order('date', { ascending: false });
 
-      // Process paginated workouts for display
-      const { data, count } = paginatedResponse;
+            setWorkouts(fullWorkouts || []);
+            setTotalWorkouts(searchCount || 0);
+          } else {
+            setWorkouts([]);
+            setTotalWorkouts(0);
+          }
+        } else {
+          // Fallback to client-side search if RPC function doesn't exist
+          await performClientSideSearch(paginatedQuery, from, to);
+        }
+      } else {
+        // No search term, use regular pagination
+        const paginatedResponse = await paginatedQuery
+          .order('date', { ascending: false })
+          .range(from, to);
 
-      // Sort exercises alphabetically within each workout, but maintain set order by created_at
-      const sortedWorkouts =
-        data?.map((workout) => ({
-          ...workout,
-          exercises: [...workout.exercises]
-            .sort((a, b) => a.name.localeCompare(b.name))
-            .map((exercise) => ({
-              ...exercise,
-              sets: [...exercise.sets].sort((a, b) => {
-                // First try to sort by created_at timestamp if available
-                if (a.created_at && b.created_at) {
-                  return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-                }
-                // Fall back to sorting by ID which is usually sequential
-                return a.id.localeCompare(b.id);
-              })
-            }))
-        })) || [];
+        if (paginatedResponse.error) throw paginatedResponse.error;
 
-      setWorkouts(sortedWorkouts);
-
-      if (count !== null) {
-        setTotalWorkouts(count);
+        const { data, count } = paginatedResponse;
+        const sortedWorkouts = processSortedWorkouts(data);
+        
+        setWorkouts(sortedWorkouts);
+        if (count !== null) {
+          setTotalWorkouts(count);
+        }
       }
     } catch (error) {
       console.error('Error fetching workouts:', error);
+      // Fallback to basic search if advanced search fails
+      await performBasicSearch();
     } finally {
       setLoading(false);
+      setSearchLoading(false);
     }
+  }
+
+  async function performClientSideSearch(baseQuery: any, from: number, to: number) {
+    // Fallback search method - get more data and filter client-side
+    const { data, count } = await baseQuery
+      .order('date', { ascending: false })
+      .range(0, Math.max(100, to + WORKOUTS_PER_PAGE)); // Get more data for search
+
+    if (data) {
+      const filteredWorkouts = data.filter((workout: Workout) => {
+        const term = searchTerm.toLowerCase();
+        const workoutMatches =
+          workout.name.toLowerCase().includes(term) ||
+          (workout.notes && workout.notes.toLowerCase().includes(term));
+
+        const exerciseMatches = workout.exercises.some((exercise) => {
+          const stats = calculateExerciseStats(exercise);
+          return (
+            exercise.name.toLowerCase().includes(term) ||
+            (exercise.notes && exercise.notes.toLowerCase().includes(term)) ||
+            exercise.sets.some(
+              (set) =>
+                (set.reps !== null &&
+                  `${set.reps} reps`.toLowerCase().includes(term)) ||
+                (set.weight !== null &&
+                  `${set.weight} lbs`.toLowerCase().includes(term)) ||
+                (set.distance !== null &&
+                  `${set.distance} mi`.toLowerCase().includes(term)) ||
+                (set.duration !== undefined &&
+                  set.duration !== null &&
+                  `${set.duration} min`.toLowerCase().includes(term))
+            ) ||
+            (stats.totalReps !== null &&
+              `${stats.totalReps} reps`.toLowerCase().includes(term)) ||
+            (stats.maxWeight !== null &&
+              `${stats.maxWeight} lbs`.toLowerCase().includes(term)) ||
+            (stats.totalDistance !== null &&
+              `${stats.totalDistance} mi`.toLowerCase().includes(term)) ||
+            (stats.totalDuration !== null &&
+              `${stats.totalDuration} min`.toLowerCase().includes(term))
+          );
+        });
+
+        return workoutMatches || exerciseMatches;
+      });
+
+      // Apply pagination to filtered results
+      const paginatedResults = filteredWorkouts.slice(from, from + WORKOUTS_PER_PAGE);
+      const sortedWorkouts = processSortedWorkouts(paginatedResults);
+      
+      setWorkouts(sortedWorkouts);
+      setTotalWorkouts(filteredWorkouts.length);
+    }
+  }
+
+  async function performBasicSearch() {
+    // Most basic fallback - just search workout names and notes
+    const from = (page - 1) * WORKOUTS_PER_PAGE;
+    const to = from + WORKOUTS_PER_PAGE - 1;
+    
+    let query = supabase.from('workouts').select(
+      `
+        *,
+        exercises (
+          id,
+          name,
+          notes,
+          icon_name,
+          sets (
+            id,
+            reps,
+            weight,
+            distance,
+            duration,
+            completed,
+            created_at
+          )
+        )
+      `,
+      { count: 'exact' }
+    );
+
+    if (searchTerm.trim()) {
+      query = query.or(`name.ilike.%${searchTerm}%,notes.ilike.%${searchTerm}%`);
+    }
+
+    const { data, count } = await query
+      .order('date', { ascending: false })
+      .range(from, to);
+
+    if (data) {
+      const sortedWorkouts = processSortedWorkouts(data);
+      setWorkouts(sortedWorkouts);
+      setTotalWorkouts(count || 0);
+    }
+  }
+
+  function processSortedWorkouts(data: any[]) {
+    return data?.map((workout) => ({
+      ...workout,
+      exercises: [...workout.exercises]
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map((exercise) => ({
+          ...exercise,
+          sets: [...exercise.sets].sort((a, b) => {
+            if (a.created_at && b.created_at) {
+              return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+            }
+            return a.id.localeCompare(b.id);
+          })
+        }))
+    })) || [];
   }
 
   async function duplicateWorkout(workout: Workout, event: React.MouseEvent) {
@@ -474,43 +636,6 @@ export default function WorkoutList() {
     );
   }
 
-  const filteredWorkouts = workouts.filter((workout) => {
-    const term = searchTerm.toLowerCase();
-    const workoutMatches =
-      workout.name.toLowerCase().includes(term) ||
-      (workout.notes && workout.notes.toLowerCase().includes(term));
-
-    const exerciseMatches = workout.exercises.some((exercise) => {
-      const stats = calculateExerciseStats(exercise);
-      return (
-        exercise.name.toLowerCase().includes(term) ||
-        (exercise.notes && exercise.notes.toLowerCase().includes(term)) ||
-        exercise.sets.some(
-          (set) =>
-            (set.reps !== null &&
-              `${set.reps} reps`.toLowerCase().includes(term)) ||
-            (set.weight !== null &&
-              `${set.weight} lbs`.toLowerCase().includes(term)) ||
-            (set.distance !== null &&
-              `${set.distance} mi`.toLowerCase().includes(term)) ||
-            (set.duration !== undefined &&
-              set.duration !== null &&
-              `${set.duration} min`.toLowerCase().includes(term))
-        ) ||
-        (stats.totalReps !== null &&
-          `${stats.totalReps} reps`.toLowerCase().includes(term)) ||
-        (stats.maxWeight !== null &&
-          `${stats.maxWeight} lbs`.toLowerCase().includes(term)) ||
-        (stats.totalDistance !== null &&
-          `${stats.totalDistance} mi`.toLowerCase().includes(term)) ||
-        (stats.totalDuration !== null &&
-          `${stats.totalDuration} min`.toLowerCase().includes(term))
-      );
-    });
-
-    return workoutMatches || exerciseMatches;
-  });
-
   const WelcomeMessage = () => (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 text-center">
       <div className="mb-6">
@@ -604,7 +729,7 @@ export default function WorkoutList() {
     setOpenMenuId(openMenuId === workoutId ? null : workoutId);
   };
 
-  if (loading) {
+  if (loading && !searchLoading) {
     return (
       <>
         <Header headerType="list" />
@@ -642,41 +767,55 @@ export default function WorkoutList() {
           </div>
 
           <div className="mb-6">
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search workouts..."
-              className="w-full p-3 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111]"
-            />
+            <div className="relative">
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search workouts, exercises, notes..."
+                className="w-full p-3 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111]"
+              />
+              {searchLoading && (
+                <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[#dbf111]"></div>
+                </div>
+              )}
+            </div>
 
-            <div className="ml-2">
-              <button
-                onClick={() => setSearchTerm('')}
-                className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white text-sm underline"
-              >
-                Clear
-              </button>
+            <div className="flex justify-between items-center mt-2">
+              <div className="ml-2">
+                <button
+                  onClick={() => setSearchTerm('')}
+                  className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white text-sm underline"
+                >
+                  Clear
+                </button>
+              </div>
+              {searchTerm && (
+                <div className="text-sm text-gray-500 dark:text-gray-400">
+                  {totalWorkouts} result{totalWorkouts !== 1 ? 's' : ''} found
+                </div>
+              )}
             </div>
           </div>
 
-          {workouts.length === 0 ? (
+          {workouts.length === 0 && !searchTerm ? (
             <WelcomeMessage />
-          ) : filteredWorkouts.length === 0 ? (
+          ) : workouts.length === 0 && searchTerm ? (
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 text-center">
               <div className="mb-6">
                 <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">
-                  No workouts match your search term
+                  No results found
                 </h2>
                 <p className="text-gray-600 dark:text-gray-300 mb-4">
-                  Please try a different search term.
+                  No workouts match your search for "{searchTerm}". Try a different search term or check your spelling.
                 </p>
               </div>
             </div>
           ) : (
             <>
               <div className="space-y-12">
-                {filteredWorkouts.map((workout) => {
+                {workouts.map((workout) => {
                   return (
                     <div
                       key={workout.id}
@@ -806,6 +945,11 @@ export default function WorkoutList() {
                                     </span>
                                   )}
                                 </div>
+                                {exercise.notes && (
+                                  <div className="absolute -bottom-6 left-8 text-xs text-gray-500 dark:text-gray-400">
+                                    {highlightText(exercise.notes, searchTerm)}
+                                  </div>
+                                )}
                               </div>
                             );
                           })}
