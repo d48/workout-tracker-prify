@@ -205,9 +205,9 @@ export interface Database {
           user_id: string
           exercise_name: string
           record_type: string
-          record_value: number
+          value: number
           workout_id: string
-          achieved_date: string
+          achieved_at: string
           created_at: string
         }
         Insert: {
@@ -215,9 +215,9 @@ export interface Database {
           user_id: string
           exercise_name: string
           record_type: string
-          record_value: number
+          value: number
           workout_id: string
-          achieved_date: string
+          achieved_at: string
           created_at?: string
         }
         Update: {
@@ -225,9 +225,9 @@ export interface Database {
           user_id?: string
           exercise_name?: string
           record_type?: string
-          record_value?: number
+          value?: number
           workout_id?: string
-          achieved_date?: string
+          achieved_at?: string
           created_at?: string
         }
         Relationships: [

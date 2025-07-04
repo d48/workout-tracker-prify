@@ -41,23 +41,24 @@ export async function checkAndUpdatePersonalRecords(
     if (metric.value === null || metric.value <= 0) continue;
 
     // Get current record for this exercise and metric
-    const { data: currentRecord } = await supabase
+    const { data: currentRecords } = await supabase
       .from('personal_records')
       .select('*')
       .eq('user_id', user.id)
       .eq('exercise_name', exerciseName)
-      .eq('record_type', metric.type)
-      .single();
+      .eq('record_type', metric.type);
+
+    const currentRecord = currentRecords && currentRecords.length > 0 ? currentRecords[0] : null;
 
     // If no record exists or new value is better, update record
-    if (!currentRecord || metric.value > currentRecord.record_value) {
+    if (!currentRecord || metric.value > currentRecord.value) {
       const recordData: PersonalRecordInsert = {
         user_id: user.id,
         exercise_name: exerciseName,
         record_type: metric.type,
-        record_value: metric.value,
+        value: metric.value,
         workout_id: workoutId,
-        achieved_date: workoutDate
+        achieved_at: workoutDate
       };
 
       await supabase
@@ -103,7 +104,7 @@ export async function getUserPersonalRecords(userId: string): Promise<PersonalRe
     .from('personal_records')
     .select('*')
     .eq('user_id', userId)
-    .order('achieved_date', { ascending: false });
+    .order('achieved_at', { ascending: false });
 
   if (error) throw error;
   return records || [];
