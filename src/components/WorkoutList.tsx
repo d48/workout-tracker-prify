@@ -22,11 +22,44 @@ import { supabase } from '../lib/supabase';
 import html2canvas from 'html2canvas';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { findIconByName } from '../lib/exercise-icons';
-import { getPersonalRecordsForWorkout } from '../lib/personalRecords';
+import { checkIfExerciseHasRecords } from '../lib/personalRecords';
 import { Database } from '../types/supabase';
 import prifyLogo from '../images/prify-logo.svg';
 import { faTrophy } from '@fortawesome/free-solid-svg-icons';
 import Header from './Header';
+
+// Component to handle trophy display with async record checking
+function TrophyDisplay({ exerciseName, stats }: { exerciseName: string, stats: any }) {
+  const [recordTypes, setRecordTypes] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function checkRecords() {
+      try {
+        const records = await checkIfExerciseHasRecords(exerciseName, stats);
+        setRecordTypes(records);
+      } catch (error) {
+        console.error('Error checking exercise records:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    checkRecords();
+  }, [exerciseName, stats]);
+
+  if (loading || recordTypes.length === 0) {
+    return null;
+  }
+
+  return (
+    <FontAwesomeIcon
+      icon={faTrophy}
+      className="h-4 w-4 text-gray-600 dark:text-[#dbf111]"
+      title={`Personal record! (${recordTypes.join(', ')})`}
+    />
+  );
+}
 
 type Workout = Database['public']['Tables']['workouts']['Row'] & {
   exercises: Array<{
@@ -79,10 +112,6 @@ export default function WorkoutList() {
   const [searchTerm, setSearchTerm] = useState('');
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
-  const [workoutRecords, setWorkoutRecords] = useState<Record<
-    string,
-    Record<string, string[]>
-  >>({});
   const navigate = useNavigate();
   const workoutRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
@@ -188,9 +217,6 @@ export default function WorkoutList() {
 
       setWorkouts(sortedWorkouts);
 
-      // Fetch personal records for each workout
-      await fetchWorkoutRecords(sortedWorkouts);
-
       if (count !== null) {
         setTotalWorkouts(count);
       }
@@ -199,17 +225,6 @@ export default function WorkoutList() {
     } finally {
       setLoading(false);
     }
-  }
-
-  async function fetchWorkoutRecords(workouts: Workout[]) {
-    const recordsMap: Record<string, Record<string, string[]>> = {};
-    
-    for (const workout of workouts) {
-      const records = await getPersonalRecordsForWorkout(workout.id);
-      recordsMap[workout.id] = records;
-    }
-    
-    setWorkoutRecords(recordsMap);
   }
 
   async function duplicateWorkout(workout: Workout, event: React.MouseEvent) {
@@ -726,10 +741,6 @@ export default function WorkoutList() {
                         <div className="space-y-2">
                           {workout.exercises.map((exercise) => {
                             const stats = calculateExerciseStats(exercise);
-                            const exerciseRecords = workoutRecords[workout.id]?.[exercise.name] || [];
-                            
-                            // Show trophy if this workout has any records for this exercise
-                            const hasRecord = exerciseRecords.length > 0;
 
                             return (
                               <div
@@ -748,13 +759,7 @@ export default function WorkoutList() {
                                   <span className="text-sm text-gray-900 dark:text-white">
                                     {highlightText(exercise.name, searchTerm)}
                                   </span>
-                                  {hasRecord && (
-                                    <FontAwesomeIcon
-                                      icon={faTrophy}
-                                      className="h-4 w-4 text-gray-600 dark:text-[#dbf111]"
-                                      title={`Personal record! (${exerciseRecords.join(', ')})`}
-                                    />
-                                  )}
+                                  <TrophyDisplay exerciseName={exercise.name} stats={stats} />
                                 </div>
                                 <div className="flex gap-3 ml-auto text-xs text-gray-600 dark:text-gray-300">
                                   {stats.totalReps !== null && (

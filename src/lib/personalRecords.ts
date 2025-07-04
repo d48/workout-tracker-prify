@@ -80,23 +80,71 @@ export async function checkAndUpdatePersonalRecords(
 
 export async function getPersonalRecordsForWorkout(
   workoutId: string
-): Promise<Record<string, string[]>> {
-  const { data: records } = await supabase
+): Promise<Record<string, { recordTypes: string[], values: Record<string, number> }>> {
+  const { data: records, error } = await supabase
     .from('personal_records')
-    .select('exercise_name, record_type')
+    .select('exercise_name, record_type, value')
     .eq('workout_id', workoutId);
 
-  if (!records) return {};
+  if (error || !records) return {};
 
-  const recordMap: Record<string, string[]> = {};
+  const recordMap: Record<string, { recordTypes: string[], values: Record<string, number> }> = {};
   records.forEach(record => {
     if (!recordMap[record.exercise_name]) {
-      recordMap[record.exercise_name] = [];
+      recordMap[record.exercise_name] = {
+        recordTypes: [],
+        values: {}
+      };
     }
-    recordMap[record.exercise_name].push(record.record_type);
+    recordMap[record.exercise_name].recordTypes.push(record.record_type);
+    recordMap[record.exercise_name].values[record.record_type] = record.value;
   });
 
   return recordMap;
+}
+
+export async function checkIfExerciseHasRecords(
+  exerciseName: string,
+  stats: ExerciseStats
+): Promise<string[]> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const { data: records } = await supabase
+    .from('personal_records')
+    .select('record_type, value')
+    .eq('user_id', user.id)
+    .eq('exercise_name', exerciseName);
+
+  if (!records) return [];
+
+  const recordTypes: string[] = [];
+  
+  records.forEach(record => {
+    let currentValue: number | null = null;
+    
+    switch (record.record_type) {
+      case 'reps':
+        currentValue = stats.totalReps;
+        break;
+      case 'weight':
+        currentValue = stats.maxWeight;
+        break;
+      case 'distance':
+        currentValue = stats.totalDistance;
+        break;
+      case 'duration':
+        currentValue = stats.totalDuration;
+        break;
+    }
+    
+    // Only show trophy if the current exercise stats match the personal record value
+    if (currentValue !== null && currentValue === record.value) {
+      recordTypes.push(record.record_type);
+    }
+  });
+
+  return recordTypes;
 }
 
 export async function getUserPersonalRecords(userId: string): Promise<PersonalRecord[]> {
