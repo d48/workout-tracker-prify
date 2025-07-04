@@ -199,6 +199,52 @@ export interface Database {
           }
         ]
       }
+      personal_records: {
+        Row: {
+          id: string
+          user_id: string
+          exercise_name: string
+          record_type: string
+          record_value: number
+          workout_id: string
+          achieved_date: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          exercise_name: string
+          record_type: string
+          record_value: number
+          workout_id: string
+          achieved_date: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          exercise_name?: string
+          record_type?: string
+          record_value?: number
+          workout_id?: string
+          achieved_date?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "personal_records_user_id_fkey"
+            columns: ["user_id"]
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "personal_records_workout_id_fkey"
+            columns: ["workout_id"]
+            referencedRelation: "workouts"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never

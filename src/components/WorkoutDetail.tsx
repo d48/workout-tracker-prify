@@ -12,6 +12,7 @@ import {
 import { supabase } from '../lib/supabase';
 import ExerciseSelector from './ExerciseSelector';
 import ExerciseStats from './ExerciseStats';
+import { checkAndUpdatePersonalRecords } from '../lib/personalRecords';
 import { format } from 'date-fns';
 import { findIconByName } from '../lib/exercise-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -267,6 +268,30 @@ export default function WorkoutDetail() {
             if (insertSetError) throw insertSetError;
             set.id = newSet.id;
           }
+        }
+
+        // Check for personal records after saving exercise
+        const completedSets = exercise.sets.filter(set => set.completed);
+        if (completedSets.length > 0) {
+          const totalReps = completedSets.reduce((sum, set) => sum + (set.reps || 0), 0);
+          const maxWeight = Math.max(...completedSets.map(set => set.weight || 0));
+          const totalDistance = completedSets.reduce((sum, set) => sum + (set.distance || 0), 0);
+          const totalDuration = completedSets.reduce((sum, set) => sum + (set.duration || 0), 0);
+
+          const stats = {
+            totalReps: totalReps > 0 ? totalReps : null,
+            maxWeight: maxWeight > 0 ? maxWeight : null,
+            totalDistance: totalDistance > 0 ? totalDistance : null,
+            totalDuration: totalDuration > 0 ? totalDuration : null
+          };
+
+          // Check and update personal records
+          await checkAndUpdatePersonalRecords(
+            exercise.name,
+            stats,
+            currentWorkoutId,
+            isoDate
+          );
         }
       }
 

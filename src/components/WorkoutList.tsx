@@ -22,6 +22,7 @@ import { supabase } from '../lib/supabase';
 import html2canvas from 'html2canvas';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { findIconByName } from '../lib/exercise-icons';
+import { getPersonalRecordsForWorkout } from '../lib/personalRecords';
 import { Database } from '../types/supabase';
 import prifyLogo from '../images/prify-logo.svg';
 import { faTrophy } from '@fortawesome/free-solid-svg-icons';
@@ -78,13 +79,9 @@ export default function WorkoutList() {
   const [searchTerm, setSearchTerm] = useState('');
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
-  const [consolidatedRecords, setConsolidatedRecords] = useState<Record<
+  const [workoutRecords, setWorkoutRecords] = useState<Record<
     string,
-    {
-      recordTypes: string[];
-      workoutId: string;
-      date: string;
-    }
+    Record<string, string[]>
   >>({});
   const navigate = useNavigate();
   const workoutRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -107,28 +104,6 @@ export default function WorkoutList() {
 
   async function fetchWorkouts() {
     try {
-      // We need to fetch ALL workouts without filtering for accurate record tracking
-      let allWorkoutsQuery = supabase.from('workouts').select(
-        `
-          *,
-          exercises (
-            id,
-            name,
-            notes,
-            icon_name,
-            sets (
-              id,
-              reps,
-              weight,
-              distance,
-              duration,
-              completed,
-              created_at
-            )
-          )
-        `
-      );
-
       // Add pagination for displayed workouts
       const from = (page - 1) * WORKOUTS_PER_PAGE;
       const to = from + WORKOUTS_PER_PAGE - 1;
@@ -184,17 +159,10 @@ export default function WorkoutList() {
           .lte('date', endDate.toISOString());
       }
 
-      // Execute both queries in parallel
-      const [allWorkoutsResponse, paginatedResponse] = await Promise.all([
-        allWorkoutsQuery, // Note: Removed the order here, we'll sort explicitly in the calculation function
-        paginatedQuery.order('date', { ascending: false }).range(from, to)
-      ]);
+      // Execute paginated query
+      const paginatedResponse = await paginatedQuery.order('date', { ascending: false }).range(from, to);
 
-      if (allWorkoutsResponse.error) throw allWorkoutsResponse.error;
       if (paginatedResponse.error) throw paginatedResponse.error;
-
-      // Process all workouts for PR calculations
-      const allWorkouts = allWorkoutsResponse.data || [];
 
       // Process paginated workouts for display
       const { data, count } = paginatedResponse;
@@ -220,8 +188,8 @@ export default function WorkoutList() {
 
       setWorkouts(sortedWorkouts);
 
-      // Calculate global records using ALL workouts, not just paginated ones
-      calculateGlobalRecords(allWorkouts);
+      // Fetch personal records for each workout
+      await fetchWorkoutRecords(sortedWorkouts);
 
       if (count !== null) {
         setTotalWorkouts(count);
@@ -233,159 +201,15 @@ export default function WorkoutList() {
     }
   }
 
-  function calculateGlobalRecords(allWorkouts: Workout[]) {
-    console.log("Processing", allWorkouts.length, "workouts for records");
+  async function fetchWorkoutRecords(workouts: Workout[]) {
+    const recordsMap: Record<string, Record<string, string[]>> = {};
     
-    // For each exercise, track the highest value for each metric
-    const globalMaxValues: Record<string, {
-      totalReps: number;
-      maxWeight: number;
-      totalDistance: number;
-      totalDuration: number;
-    }> = {};
+    for (const workout of workouts) {
+      const records = await getPersonalRecordsForWorkout(workout.id);
+      recordsMap[workout.id] = records;
+    }
     
-    // Create a consolidated record to track which workout has the global record for each exercise
-    // Will store only the newest/latest workout that has any record for this exercise
-    const globalRecordsMap: Record<string, {
-      recordTypes: string[]; // Types of records this workout holds ("reps", "weight", "distance", "duration")
-      workoutId: string;     // ID of the workout with the records
-      date: string;          // Date of the workout with the records
-    }> = {};
-    
-    // First, find the global maximum values for each exercise and their corresponding workouts
-    const tempRecords: Record<string, {
-      totalReps: { value: number; workoutId: string; date: string } | null;
-      maxWeight: { value: number; workoutId: string; date: string } | null;
-      totalDistance: { value: number; workoutId: string; date: string } | null;
-      totalDuration: { value: number; workoutId: string; date: string } | null;
-    }> = {};
-    
-    // Initialize tracking objects
-    allWorkouts.forEach(workout => {
-      workout.exercises.forEach(exercise => {
-        const exerciseName = exercise.name;
-        
-        if (!globalMaxValues[exerciseName]) {
-          globalMaxValues[exerciseName] = {
-            totalReps: 0,
-            maxWeight: 0,
-            totalDistance: 0,
-            totalDuration: 0
-          };
-          
-          tempRecords[exerciseName] = {
-            totalReps: null,
-            maxWeight: null,
-            totalDistance: null,
-            totalDuration: null
-          };
-        }
-      });
-    });
-    
-    // First pass: Find max values across all workouts sorted by date (newest first)
-    const sortedWorkouts = [...allWorkouts].sort((a, b) => 
-      // Sort newest first for record tracking
-      new Date(b.date).getTime() - new Date(a.date).getTime()
-    );
-    
-    sortedWorkouts.forEach(workout => {
-      workout.exercises.forEach(exercise => {
-        const stats = calculateExerciseStats(exercise);
-        const exerciseName = exercise.name;
-        
-        // Check if this workout has a global max for any metric
-        let hasRecord = false;
-        const recordTypes: string[] = [];
-        
-        // Update max reps if this workout has higher value
-        if (stats.totalReps !== null && stats.totalReps >= globalMaxValues[exerciseName].totalReps) {
-          // If equal to current max, prefer this one as it's newer (due to sort order)
-          if (stats.totalReps === globalMaxValues[exerciseName].totalReps && tempRecords[exerciseName].totalReps) {
-            // Skip if we already have a record with this exact value
-            // We only update if the value is higher, not equal
-          } else {
-            globalMaxValues[exerciseName].totalReps = stats.totalReps;
-            tempRecords[exerciseName].totalReps = {
-              value: stats.totalReps,
-              workoutId: workout.id,
-              date: workout.date
-            };
-            hasRecord = true;
-            recordTypes.push('reps');
-          }
-        }
-        
-        // Update max weight if this workout has higher value
-        if (stats.maxWeight !== null && stats.maxWeight >= globalMaxValues[exerciseName].maxWeight) {
-          // If equal to current max, prefer this one as it's newer (due to sort order)
-          if (stats.maxWeight === globalMaxValues[exerciseName].maxWeight && tempRecords[exerciseName].maxWeight) {
-            // Skip if we already have a record with this exact value
-          } else {
-            globalMaxValues[exerciseName].maxWeight = stats.maxWeight;
-            tempRecords[exerciseName].maxWeight = {
-              value: stats.maxWeight,
-              workoutId: workout.id,
-              date: workout.date
-            };
-            hasRecord = true;
-            recordTypes.push('weight');
-          }
-        }
-        
-        // Update max distance if this workout has higher value
-        if (stats.totalDistance !== null && stats.totalDistance >= globalMaxValues[exerciseName].totalDistance) {
-          // If equal to current max, prefer this one as it's newer (due to sort order)
-          if (stats.totalDistance === globalMaxValues[exerciseName].totalDistance && tempRecords[exerciseName].totalDistance) {
-            // Skip if we already have a record with this exact value
-          } else {
-            globalMaxValues[exerciseName].totalDistance = stats.totalDistance;
-            tempRecords[exerciseName].totalDistance = {
-              value: stats.totalDistance,
-              workoutId: workout.id,
-              date: workout.date
-            };
-            hasRecord = true;
-            recordTypes.push('distance');
-          }
-        }
-        
-        // Update max duration if this workout has higher value
-        if (stats.totalDuration !== null && stats.totalDuration >= globalMaxValues[exerciseName].totalDuration) {
-          // If equal to current max, prefer this one as it's newer (due to sort order)
-          if (stats.totalDuration === globalMaxValues[exerciseName].totalDuration && tempRecords[exerciseName].totalDuration) {
-            // Skip if we already have a record with this exact value
-          } else {
-            globalMaxValues[exerciseName].totalDuration = stats.totalDuration;
-            tempRecords[exerciseName].totalDuration = {
-              value: stats.totalDuration,
-              workoutId: workout.id,
-              date: workout.date
-            };
-            hasRecord = true;
-            recordTypes.push('duration');
-          }
-        }
-        
-        // If this workout has any records for this exercise, save it
-        // Since we sorted workouts newest first, this will automatically prefer newer workouts
-        if (hasRecord) {
-          globalRecordsMap[exerciseName] = {
-            recordTypes,
-            workoutId: workout.id,
-            date: workout.date
-          };
-        }
-      });
-    });
-    
-    console.log("Global max values:", globalMaxValues);
-    console.log("Global records (by newest workout):", globalRecordsMap);
-    console.log("Detailed records:", tempRecords);
-    
-    // Store the consolidated records for UI display
-    // We need to add this new state to track consolidated records
-    setConsolidatedRecords(globalRecordsMap);
+    setWorkoutRecords(recordsMap);
   }
 
   async function duplicateWorkout(workout: Workout, event: React.MouseEvent) {
@@ -902,10 +726,10 @@ export default function WorkoutList() {
                         <div className="space-y-2">
                           {workout.exercises.map((exercise) => {
                             const stats = calculateExerciseStats(exercise);
-                            const consolidatedRecord = consolidatedRecords[exercise.name];
+                            const exerciseRecords = workoutRecords[workout.id]?.[exercise.name] || [];
                             
-                            // Only show trophy if this is the workout that holds the record(s) for this exercise
-                            const hasGlobalRecord = consolidatedRecord && consolidatedRecord.workoutId === workout.id;
+                            // Show trophy if this workout has any records for this exercise
+                            const hasRecord = exerciseRecords.length > 0;
 
                             return (
                               <div
@@ -924,11 +748,11 @@ export default function WorkoutList() {
                                   <span className="text-sm text-gray-900 dark:text-white">
                                     {highlightText(exercise.name, searchTerm)}
                                   </span>
-                                  {hasGlobalRecord && (
+                                  {hasRecord && (
                                     <FontAwesomeIcon
                                       icon={faTrophy}
                                       className="h-4 w-4 text-gray-600 dark:text-[#dbf111]"
-                                      title={`Global record! (${consolidatedRecord.recordTypes.join(', ')})`}
+                                      title={`Personal record! (${exerciseRecords.join(', ')})`}
                                     />
                                   )}
                                 </div>
