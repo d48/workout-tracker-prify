@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   format,
@@ -121,15 +121,37 @@ export default function WorkoutList() {
   const [page, setPage] = useState(1);
   const [totalWorkouts, setTotalWorkouts] = useState(0);
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [searchLoading, setSearchLoading] = useState(false);
 
   const navigate = useNavigate();
   const workoutRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Debounce search term with minimum 3 characters
+  useEffect(() => {
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current);
+    }
+
+    debounceTimeoutRef.current = setTimeout(() => {
+      // Only set debounced search term if it's empty or has at least 3 characters
+      if (searchTerm.length === 0 || searchTerm.length >= 3) {
+        setDebouncedSearchTerm(searchTerm);
+      }
+    }, 300); // 300ms debounce
+
+    return () => {
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+      }
+    };
+  }, [searchTerm]);
 
   useEffect(() => {
     fetchWorkouts();
-  }, [filter, page, searchTerm]);
+  }, [filter, page, debouncedSearchTerm]);
 
   useEffect(() => {
     const handleResetToPageOne = () => {
@@ -145,10 +167,10 @@ export default function WorkoutList() {
 
   // Reset to page 1 when search term changes
   useEffect(() => {
-    if (searchTerm) {
+    if (debouncedSearchTerm) {
       setPage(1);
     }
-  }, [searchTerm]);
+  }, [debouncedSearchTerm]);
 
   async function fetchWorkouts() {
     try {
@@ -208,27 +230,24 @@ export default function WorkoutList() {
           .lte('date', endDate.toISOString());
       }
 
-      // Apply search filters if search term exists
-      if (searchTerm.trim()) {
-        const searchPattern = `%${searchTerm.toLowerCase()}%`;
-        
-        // Use a more complex query that searches across workouts, exercises, and notes
-        // We'll use a subquery approach to find workouts that match our criteria
-        const { data: searchResults, count: searchCount } = await supabase.rpc(
-          'search_workouts_and_exercises',
-          {
-            search_term: searchTerm.toLowerCase(),
-            date_filter: filter,
-            limit_count: WORKOUTS_PER_PAGE,
-            offset_count: from
-          }
-        );
+      // Apply search filters if search term exists and has at least 3 characters
+      if (debouncedSearchTerm.trim() && debouncedSearchTerm.length >= 3) {
+        try {
+          // Use the RPC function for comprehensive search
+          const { data: searchResults, count: searchCount } = await supabase.rpc(
+            'search_workouts_and_exercises',
+            {
+              search_term: debouncedSearchTerm.toLowerCase(),
+              date_filter: filter,
+              limit_count: WORKOUTS_PER_PAGE,
+              offset_count: from
+            }
+          );
 
-        if (searchResults) {
-          // Now fetch the full workout data for the matching workout IDs
-          const workoutIds = searchResults.map((result: any) => result.workout_id);
-          
-          if (workoutIds.length > 0) {
+          if (searchResults && searchResults.length > 0) {
+            // Now fetch the full workout data for the matching workout IDs
+            const workoutIds = searchResults.map((result: any) => result.workout_id);
+            
             const { data: fullWorkouts } = await supabase
               .from('workouts')
               .select(`
@@ -252,18 +271,19 @@ export default function WorkoutList() {
               .in('id', workoutIds)
               .order('date', { ascending: false });
 
-            setWorkouts(fullWorkouts || []);
+            setWorkouts(processSortedWorkouts(fullWorkouts || []));
             setTotalWorkouts(searchCount || 0);
           } else {
             setWorkouts([]);
             setTotalWorkouts(0);
           }
-        } else {
+        } catch (rpcError) {
+          console.error('RPC search failed, falling back to client-side search:', rpcError);
           // Fallback to client-side search if RPC function doesn't exist
           await performClientSideSearch(paginatedQuery, from, to);
         }
       } else {
-        // No search term, use regular pagination
+        // No search term or less than 3 characters, use regular pagination
         const paginatedResponse = await paginatedQuery
           .order('date', { ascending: false })
           .range(from, to);
@@ -296,7 +316,7 @@ export default function WorkoutList() {
 
     if (data) {
       const filteredWorkouts = data.filter((workout: Workout) => {
-        const term = searchTerm.toLowerCase();
+        const term = debouncedSearchTerm.toLowerCase();
         const workoutMatches =
           workout.name.toLowerCase().includes(term) ||
           (workout.notes && workout.notes.toLowerCase().includes(term));
@@ -368,8 +388,8 @@ export default function WorkoutList() {
       { count: 'exact' }
     );
 
-    if (searchTerm.trim()) {
-      query = query.or(`name.ilike.%${searchTerm}%,notes.ilike.%${searchTerm}%`);
+    if (debouncedSearchTerm.trim() && debouncedSearchTerm.length >= 3) {
+      query = query.or(`name.ilike.%${debouncedSearchTerm}%,notes.ilike.%${debouncedSearchTerm}%`);
     }
 
     const { data, count } = await query
@@ -620,7 +640,7 @@ export default function WorkoutList() {
   }
 
   function highlightText(text: string, term: string) {
-    if (!term) return text;
+    if (!term || term.length < 3) return text;
     const regex = new RegExp(
       `(${term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`,
       'gi'
@@ -772,7 +792,7 @@ export default function WorkoutList() {
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search workouts, exercises, notes..."
+                placeholder="Search workouts, exercises, notes... (min 3 characters)"
                 className="w-full p-3 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#dbf111] focus:border-[#dbf111]"
               />
               {searchLoading && (
@@ -791,7 +811,12 @@ export default function WorkoutList() {
                   Clear
                 </button>
               </div>
-              {searchTerm && (
+              {searchTerm.length > 0 && searchTerm.length < 3 && (
+                <div className="text-sm text-gray-500 dark:text-gray-400">
+                  Type {3 - searchTerm.length} more character{3 - searchTerm.length !== 1 ? 's' : ''} to search
+                </div>
+              )}
+              {debouncedSearchTerm && debouncedSearchTerm.length >= 3 && (
                 <div className="text-sm text-gray-500 dark:text-gray-400">
                   {totalWorkouts} result{totalWorkouts !== 1 ? 's' : ''} found
                 </div>
@@ -799,16 +824,16 @@ export default function WorkoutList() {
             </div>
           </div>
 
-          {workouts.length === 0 && !searchTerm ? (
+          {workouts.length === 0 && !debouncedSearchTerm ? (
             <WelcomeMessage />
-          ) : workouts.length === 0 && searchTerm ? (
+          ) : workouts.length === 0 && debouncedSearchTerm ? (
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 text-center">
               <div className="mb-6">
                 <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">
                   No results found
                 </h2>
                 <p className="text-gray-600 dark:text-gray-300 mb-4">
-                  No workouts match your search for "{searchTerm}". Try a different search term or check your spelling.
+                  No workouts match your search for "{debouncedSearchTerm}". Try a different search term or check your spelling.
                 </p>
               </div>
             </div>
@@ -826,14 +851,14 @@ export default function WorkoutList() {
                       <div className="flex justify-between items-start">
                         <div className="flex-1">
                           <h2 className="text-lg font-semibold text-gray-900 dark:text-white hover:text-[#dbf111] dark:hover:text-[#dbf111] transition-colors">
-                            {highlightText(workout.name, searchTerm)}
+                            {highlightText(workout.name, debouncedSearchTerm)}
                           </h2>
                           <p className="text-sm text-gray-500 dark:text-gray-400">
                             {format(new Date(workout.date), 'MMM d, yyyy')}
                           </p>
                           {workout.notes && (
                             <p className="text-sm text-gray-600 dark:text-gray-300 mt-2 whitespace-pre-wrap">
-                              {highlightText(workout.notes, searchTerm)}
+                              {highlightText(workout.notes, debouncedSearchTerm)}
                             </p>
                           )}
                         </div>
@@ -907,7 +932,7 @@ export default function WorkoutList() {
                                 />
                                 <div className="inline-flex items-center gap-3">
                                   <span className="text-sm text-gray-900 dark:text-white">
-                                    {highlightText(exercise.name, searchTerm)}
+                                    {highlightText(exercise.name, debouncedSearchTerm)}
                                   </span>
                                   <TrophyDisplay exerciseName={exercise.name} stats={stats} />
                                 </div>
@@ -916,7 +941,7 @@ export default function WorkoutList() {
                                     <span>
                                       {highlightText(
                                         `${stats.totalReps} reps`,
-                                        searchTerm
+                                        debouncedSearchTerm
                                       )}
                                     </span>
                                   )}
@@ -924,7 +949,7 @@ export default function WorkoutList() {
                                     <span>
                                       {highlightText(
                                         `${stats.maxWeight} lbs`,
-                                        searchTerm
+                                        debouncedSearchTerm
                                       )}
                                     </span>
                                   )}
@@ -932,7 +957,7 @@ export default function WorkoutList() {
                                     <span>
                                       {highlightText(
                                         `${stats.totalDistance} mi`,
-                                        searchTerm
+                                        debouncedSearchTerm
                                       )}
                                     </span>
                                   )}
@@ -940,14 +965,14 @@ export default function WorkoutList() {
                                     <span>
                                       {highlightText(
                                         `${stats.totalDuration} min`,
-                                        searchTerm
+                                        debouncedSearchTerm
                                       )}
                                     </span>
                                   )}
                                 </div>
                                 {exercise.notes && (
                                   <div className="absolute -bottom-6 left-8 text-xs text-gray-500 dark:text-gray-400">
-                                    {highlightText(exercise.notes, searchTerm)}
+                                    {highlightText(exercise.notes, debouncedSearchTerm)}
                                   </div>
                                 )}
                               </div>
