@@ -19,6 +19,7 @@ import {
   EllipsisVerticalIcon
 } from '@heroicons/react/24/outline';
 import { supabase } from '../lib/supabase';
+import { testSupabaseConnection } from '../lib/supabase';
 import html2canvas from 'html2canvas';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { findIconByName } from '../lib/exercise-icons';
@@ -182,6 +183,13 @@ export default function WorkoutList() {
     try {
       setSearchLoading(true);
       
+      // Test Supabase connection first
+      const connectionTest = await testSupabaseConnection();
+      if (!connectionTest.success) {
+        console.error('Supabase connection failed:', connectionTest.error);
+        throw new Error(`Database connection failed: ${connectionTest.error}`);
+      }
+      
       // Add pagination for displayed workouts
       const from = (page - 1) * WORKOUTS_PER_PAGE;
       const to = from + WORKOUTS_PER_PAGE - 1;
@@ -306,8 +314,27 @@ export default function WorkoutList() {
       }
     } catch (error) {
       console.error('Error fetching workouts:', error);
-      // Fallback to basic search if advanced search fails
-      await performBasicSearch();
+      
+      // Provide user-friendly error handling
+      if (error instanceof Error) {
+        if (error.message.includes('Failed to fetch') || error.message.includes('Database connection failed')) {
+          console.error('Network connectivity issue detected. Please check:');
+          console.error('1. Your internet connection');
+          console.error('2. Supabase project URL and API key in .env file');
+          console.error('3. Supabase project status');
+          console.error('4. Restart your development server after updating .env');
+          
+          // Set empty state instead of trying fallback
+          setWorkouts([]);
+          setTotalWorkouts(0);
+        } else {
+          // For other errors, try basic search fallback
+          await performBasicSearch();
+        }
+      } else {
+        // For unknown errors, try basic search fallback
+        await performBasicSearch();
+      }
     } finally {
       setLoading(false);
       setSearchLoading(false);
@@ -368,44 +395,54 @@ export default function WorkoutList() {
   }
 
   async function performBasicSearch() {
-    // Most basic fallback - just search workout names and notes
-    const from = (page - 1) * WORKOUTS_PER_PAGE;
-    const to = from + WORKOUTS_PER_PAGE - 1;
-    
-    let query = supabase.from('workouts').select(
-      `
-        *,
-        exercises (
-          id,
-          name,
-          notes,
-          icon_name,
-          sets (
+    try {
+      // Most basic fallback - just search workout names and notes
+      const from = (page - 1) * WORKOUTS_PER_PAGE;
+      const to = from + WORKOUTS_PER_PAGE - 1;
+      
+      let query = supabase.from('workouts').select(
+        `
+          *,
+          exercises (
             id,
-            reps,
-            weight,
-            distance,
-            duration,
-            completed,
-            created_at
+            name,
+            notes,
+            icon_name,
+            sets (
+              id,
+              reps,
+              weight,
+              distance,
+              duration,
+              completed,
+              created_at
+            )
           )
-        )
-      `,
-      { count: 'exact' }
-    );
+        `,
+        { count: 'exact' }
+      );
 
-    if (debouncedSearchTerm.trim() && debouncedSearchTerm.length >= 3) {
-      query = query.or(`name.ilike.%${debouncedSearchTerm}%,notes.ilike.%${debouncedSearchTerm}%`);
-    }
+      if (debouncedSearchTerm.trim() && debouncedSearchTerm.length >= 3) {
+        query = query.or(`name.ilike.%${debouncedSearchTerm}%,notes.ilike.%${debouncedSearchTerm}%`);
+      }
 
-    const { data, count } = await query
-      .order('date', { ascending: false })
-      .range(from, to);
+      const { data, count, error } = await query
+        .order('date', { ascending: false })
+        .range(from, to);
 
-    if (data) {
-      const sortedWorkouts = processSortedWorkouts(data);
-      setWorkouts(sortedWorkouts);
-      setTotalWorkouts(count || 0);
+      if (error) {
+        throw error;
+      }
+
+      if (data) {
+        const sortedWorkouts = processSortedWorkouts(data);
+        setWorkouts(sortedWorkouts);
+        setTotalWorkouts(count || 0);
+      }
+    } catch (error) {
+      console.error('Basic search also failed:', error);
+      setWorkouts([]);
+      setTotalWorkouts(0);
     }
   }
 
@@ -759,8 +796,15 @@ export default function WorkoutList() {
     return (
       <>
         <Header headerType="list" />
-        <div className="pt-24 text-center text-gray-500 dark:text-gray-400">
-          Loading workouts...
+        <div className="pt-24 px-4">
+          <div className="max-w-lg mx-auto text-center">
+            <div className="text-gray-500 dark:text-gray-400 mb-4">
+              Loading workouts...
+            </div>
+            <div className="text-sm text-gray-400 dark:text-gray-500">
+              If this takes too long, please check your internet connection and Supabase configuration.
+            </div>
+          </div>
         </div>
       </>
     );
@@ -841,6 +885,28 @@ export default function WorkoutList() {
                 <p className="text-gray-600 dark:text-gray-300 mb-4">
                   No workouts match your search for "{debouncedSearchTerm}". Try a different search term or check your spelling.
                 </p>
+              </div>
+            </div>
+          ) : workouts.length === 0 && !loading ? (
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 text-center">
+              <div className="mb-6">
+                <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">
+                  Unable to load workouts
+                </h2>
+                <p className="text-gray-600 dark:text-gray-300 mb-4">
+                  There seems to be a connection issue. Please check:
+                </p>
+                <ul className="text-left text-sm text-gray-500 dark:text-gray-400 mb-4 space-y-1">
+                  <li>• Your internet connection</li>
+                  <li>• Supabase configuration in .env file</li>
+                  <li>• Restart the development server</li>
+                </ul>
+                <button
+                  onClick={() => window.location.reload()}
+                  className="bg-[#dbf111] text-black px-4 py-2 rounded-lg hover:bg-[#c5d60f]"
+                >
+                  Retry
+                </button>
               </div>
             </div>
           ) : (

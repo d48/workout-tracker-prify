@@ -114,23 +114,26 @@ export async function checkIfExerciseHasRecords(
       return [];
     }
 
+    // Test connection before making requests
+    try {
+      const { error: connectionError } = await supabase.auth.getSession();
+      if (connectionError && connectionError.message.includes('Failed to fetch')) {
+        console.warn('Supabase connection issue detected, skipping record check');
+        return [];
+      }
+    } catch (connectionError) {
+      console.warn('Unable to test Supabase connection, skipping record check');
+      return [];
+    }
+
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     
     if (authError) {
       console.error('Authentication error:', authError);
-      console.error('Error details:', {
-        message: authError.message,
-        status: authError.status,
-        statusText: authError.statusText
-      });
       
       // If it's a network error, provide more specific guidance
       if (authError.message?.includes('Failed to fetch') || authError.message?.includes('fetch')) {
-        console.error('Network connectivity issue detected. Please check:');
-        console.error('1. Your internet connection');
-        console.error('2. Supabase project URL and API key in .env file');
-        console.error('3. Supabase project status');
-        console.error('4. Restart your development server after updating .env');
+        console.warn('Network connectivity issue detected while checking records');
       }
       
       return [];
@@ -149,12 +152,12 @@ export async function checkIfExerciseHasRecords(
 
     if (error) {
       console.error('Error fetching personal records:', error);
-      console.error('Error details:', {
-        message: error.message,
-        details: error.details,
-        hint: error.hint,
-        code: error.code
-      });
+      
+      // Handle network errors gracefully
+      if (error.message?.includes('Failed to fetch')) {
+        console.warn('Network error while fetching personal records, skipping trophy display');
+      }
+      
       return [];
     }
   
@@ -193,21 +196,7 @@ export async function checkIfExerciseHasRecords(
     
     // Check if it's a network error
     if (error instanceof TypeError && (error.message.includes('Failed to fetch') || error.message.includes('fetch'))) {
-      console.error('Network error detected. Please check:');
-      console.error('1. Your internet connection');
-      console.error('2. Supabase project status');
-      console.error('3. Environment variables (VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY)');
-      console.error('4. Restart your development server');
-      console.error('5. Verify your Supabase project URL and API key are correct');
-    }
-    
-    // Check for CORS or other network-related issues
-    if (error instanceof Error) {
-      if (error.message.includes('CORS')) {
-        console.error('CORS error detected - this may indicate incorrect Supabase URL');
-      } else if (error.message.includes('NetworkError')) {
-        console.error('Network error - check your internet connection and Supabase project status');
-      }
+      console.warn('Network error while checking personal records, skipping trophy display');
     }
     
     return [];

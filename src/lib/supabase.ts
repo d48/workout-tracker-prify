@@ -31,39 +31,14 @@ try {
   throw new Error(errorMessage);
 }
 
-// Test basic connectivity
-const testConnection = async () => {
-  try {
-    const response = await fetch(`${supabaseUrl}/rest/v1/`, {
-      method: 'HEAD',
-      headers: {
-        'apikey': supabaseKey,
-        'Authorization': `Bearer ${supabaseKey}`
-      }
-    });
-    
-    if (response.ok) {
-      console.log('✓ Supabase connection test successful');
-    } else {
-      console.warn('⚠ Supabase connection test failed:', response.status, response.statusText);
-    }
-  } catch (error) {
-    console.warn('⚠ Supabase connection test failed:', error);
-  }
-};
-
-// Run connection test in development
-if (import.meta.env.MODE === 'development') {
-  testConnection();
-}
-
+// Create Supabase client with enhanced error handling
 export const supabase = createClient<Database>(supabaseUrl, supabaseKey, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,
     flowType: 'pkce',
-    debug: process.env.NODE_ENV === 'development',
+    debug: import.meta.env.MODE === 'development',
     storage: {
       getItem: (key) => {
         try {
@@ -99,4 +74,65 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseKey, {
   }
 });
 
+// Test basic connectivity with better error handling
+const testConnection = async () => {
+  try {
+    console.log('Testing Supabase connection...');
+    
+    // Use a simple auth check instead of direct fetch to test connectivity
+    const { data, error } = await supabase.auth.getSession();
+    
+    if (error) {
+      console.warn('⚠ Supabase connection test failed:', error.message);
+      
+      // Provide specific guidance based on error type
+      if (error.message.includes('Failed to fetch') || error.message.includes('fetch')) {
+        console.error('Network connectivity issue detected. Please check:');
+        console.error('1. Your internet connection');
+        console.error('2. Supabase project URL and API key in .env file');
+        console.error('3. Supabase project status at https://supabase.com/dashboard');
+        console.error('4. Restart your development server after updating .env');
+        console.error('5. Check if your firewall or proxy is blocking requests to Supabase');
+      }
+    } else {
+      console.log('✓ Supabase connection test successful');
+    }
+  } catch (error) {
+    console.warn('⚠ Supabase connection test failed:', error);
+    
+    if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+      console.error('Network error detected. Please check:');
+      console.error('1. Your internet connection');
+      console.error('2. Supabase project status');
+      console.error('3. Environment variables (VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY)');
+      console.error('4. Restart your development server');
+      console.error('5. Verify your Supabase project URL and API key are correct');
+      console.error('6. Check if your firewall or proxy is blocking requests');
+    }
+  }
+};
+
+// Run connection test in development with delay to avoid blocking initialization
+if (import.meta.env.MODE === 'development') {
+  setTimeout(testConnection, 1000);
+}
+
 console.log('✓ Supabase client initialized successfully');
+
+// Export a helper function to check if Supabase is properly configured
+export const isSupabaseConfigured = () => {
+  return !!(supabaseUrl && supabaseKey);
+};
+
+// Export a helper function to test connectivity
+export const testSupabaseConnection = async () => {
+  try {
+    const { error } = await supabase.auth.getSession();
+    return { success: !error, error: error?.message };
+  } catch (error) {
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Unknown error' 
+    };
+  }
+};
