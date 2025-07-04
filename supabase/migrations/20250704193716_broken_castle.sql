@@ -1,0 +1,66 @@
+/*
+  # Create search_workouts_and_exercises RPC function
+
+  1. New Functions
+    - `search_workouts_and_exercises` - Searches across workouts, exercises, and notes
+      - Parameters: search_term, date_filter, limit_count, offset_count
+      - Returns: workout_id for matching workouts
+  
+  2. Features
+    - Searches workout names and notes
+    - Searches exercise names and notes
+    - Applies date filters (today, week, month)
+    - Supports pagination with limit and offset
+    - Uses proper table aliases to avoid column ambiguity
+*/
+
+CREATE OR REPLACE FUNCTION search_workouts_and_exercises(
+  search_term TEXT,
+  date_filter TEXT DEFAULT 'all',
+  limit_count INTEGER DEFAULT 10,
+  offset_count INTEGER DEFAULT 0
+)
+RETURNS TABLE(workout_id UUID)
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  start_date TIMESTAMPTZ;
+  end_date TIMESTAMPTZ;
+BEGIN
+  -- Set date range based on filter
+  CASE date_filter
+    WHEN 'today' THEN
+      start_date := date_trunc('day', NOW());
+      end_date := start_date + INTERVAL '1 day';
+    WHEN 'week' THEN
+      start_date := date_trunc('week', NOW()) + INTERVAL '1 day'; -- Start on Monday
+      end_date := start_date + INTERVAL '7 days';
+    WHEN 'month' THEN
+      start_date := date_trunc('month', NOW());
+      end_date := start_date + INTERVAL '1 month';
+    ELSE
+      start_date := '1970-01-01'::TIMESTAMPTZ;
+      end_date := NOW() + INTERVAL '1 year';
+  END CASE;
+
+  RETURN QUERY
+  SELECT DISTINCT w.id as workout_id
+  FROM workouts w
+  LEFT JOIN exercises e ON e.workout_id = w.id
+  WHERE w.user_id = auth.uid()
+    AND w.date >= start_date
+    AND w.date < end_date
+    AND (
+      -- Search in workout name and notes
+      LOWER(w.name) LIKE '%' || search_term || '%'
+      OR (w.notes IS NOT NULL AND LOWER(w.notes) LIKE '%' || search_term || '%')
+      -- Search in exercise name and notes
+      OR LOWER(e.name) LIKE '%' || search_term || '%'
+      OR (e.notes IS NOT NULL AND LOWER(e.notes) LIKE '%' || search_term || '%')
+    )
+  ORDER BY w.date DESC
+  LIMIT limit_count
+  OFFSET offset_count;
+END;
+$$;
