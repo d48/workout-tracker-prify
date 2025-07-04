@@ -108,15 +108,36 @@ export async function checkIfExerciseHasRecords(
   stats: ExerciseStats
 ): Promise<string[]> {
   try {
+    // Check if Supabase client is properly configured
+    if (!supabase) {
+      console.error('Supabase client is not initialized');
+      return [];
+    }
+
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     
     if (authError) {
       console.error('Authentication error:', authError);
+      console.error('Error details:', {
+        message: authError.message,
+        status: authError.status,
+        statusText: authError.statusText
+      });
+      
+      // If it's a network error, provide more specific guidance
+      if (authError.message?.includes('Failed to fetch') || authError.message?.includes('fetch')) {
+        console.error('Network connectivity issue detected. Please check:');
+        console.error('1. Your internet connection');
+        console.error('2. Supabase project URL and API key in .env file');
+        console.error('3. Supabase project status');
+        console.error('4. Restart your development server after updating .env');
+      }
+      
       return [];
     }
     
     if (!user) {
-      console.warn('No authenticated user found');
+      console.warn('No authenticated user found - user may need to sign in');
       return [];
     }
 
@@ -171,12 +192,22 @@ export async function checkIfExerciseHasRecords(
     console.error('Unexpected error in checkIfExerciseHasRecords:', error);
     
     // Check if it's a network error
-    if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+    if (error instanceof TypeError && (error.message.includes('Failed to fetch') || error.message.includes('fetch'))) {
       console.error('Network error detected. Please check:');
       console.error('1. Your internet connection');
       console.error('2. Supabase project status');
       console.error('3. Environment variables (VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY)');
       console.error('4. Restart your development server');
+      console.error('5. Verify your Supabase project URL and API key are correct');
+    }
+    
+    // Check for CORS or other network-related issues
+    if (error instanceof Error) {
+      if (error.message.includes('CORS')) {
+        console.error('CORS error detected - this may indicate incorrect Supabase URL');
+      } else if (error.message.includes('NetworkError')) {
+        console.error('Network error - check your internet connection and Supabase project status');
+      }
     }
     
     return [];

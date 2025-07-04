@@ -49,7 +49,13 @@ function TrophyDisplay({ exerciseName, stats }: { exerciseName: string, stats: a
         const records = await checkIfExerciseHasRecords(exerciseName, stats);
         setRecordTypes(records);
       } catch (error) {
-        console.error('Error checking exercise records:', error);
+        console.error('Error checking exercise records for', exerciseName, ':', error);
+        
+        // Provide user-friendly error handling
+        if (error instanceof Error && error.message.includes('Failed to fetch')) {
+          console.warn('Unable to check personal records due to connection issues. Records will not be displayed.');
+        }
+        
         setRecordTypes([]);
       } finally {
         setLoading(false);

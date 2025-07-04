@@ -9,20 +9,52 @@ console.log('Supabase Configuration Check:');
 console.log('- URL:', supabaseUrl ? `${supabaseUrl.substring(0, 20)}...` : 'MISSING');
 console.log('- Key exists:', !!supabaseKey);
 console.log('- Key length:', supabaseKey ? supabaseKey.length : 0);
+console.log('- Environment:', import.meta.env.MODE);
 
 if (!supabaseUrl || !supabaseKey) {
   const missingVars = [];
   if (!supabaseUrl) missingVars.push('VITE_SUPABASE_URL');
   if (!supabaseKey) missingVars.push('VITE_SUPABASE_ANON_KEY');
   
-  throw new Error(`Missing required environment variables: ${missingVars.join(', ')}. Please check your .env file and restart the development server.`);
+  const errorMessage = `Missing required environment variables: ${missingVars.join(', ')}. Please check your .env file and restart the development server.`;
+  console.error(errorMessage);
+  throw new Error(errorMessage);
 }
 
 // Validate URL format
 try {
   new URL(supabaseUrl);
+  console.log('✓ Supabase URL format is valid');
 } catch (error) {
-  throw new Error(`Invalid VITE_SUPABASE_URL format: ${supabaseUrl}. Please check your .env file.`);
+  const errorMessage = `Invalid VITE_SUPABASE_URL format: ${supabaseUrl}. Please check your .env file.`;
+  console.error(errorMessage);
+  throw new Error(errorMessage);
+}
+
+// Test basic connectivity
+const testConnection = async () => {
+  try {
+    const response = await fetch(`${supabaseUrl}/rest/v1/`, {
+      method: 'HEAD',
+      headers: {
+        'apikey': supabaseKey,
+        'Authorization': `Bearer ${supabaseKey}`
+      }
+    });
+    
+    if (response.ok) {
+      console.log('✓ Supabase connection test successful');
+    } else {
+      console.warn('⚠ Supabase connection test failed:', response.status, response.statusText);
+    }
+  } catch (error) {
+    console.warn('⚠ Supabase connection test failed:', error);
+  }
+};
+
+// Run connection test in development
+if (import.meta.env.MODE === 'development') {
+  testConnection();
 }
 
 export const supabase = createClient<Database>(supabaseUrl, supabaseKey, {
@@ -66,3 +98,5 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseKey, {
     }
   }
 });
+
+console.log('✓ Supabase client initialized successfully');
