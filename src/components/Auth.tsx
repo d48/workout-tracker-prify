@@ -143,6 +143,8 @@ export default function Auth() {
       setLoading(true);
       setAuthInProgress(true);
 
+      console.log('Starting Google OAuth...');
+      
       // For local development, we'll handle the redirect differently
       const isLocalDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
       
@@ -155,6 +157,8 @@ export default function Auth() {
         redirectToUrl = `${window.location.origin}/workouts`;
       }
 
+      console.log('Redirect URL:', redirectToUrl);
+      
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
@@ -173,6 +177,7 @@ export default function Auth() {
       }
 
       console.log('Redirecting to Google OAuth...');
+      console.log('OAuth URL:', data.url);
     } catch (err) {
       const authError = err as AuthError;
       console.error('Google Sign-in error:', authError);

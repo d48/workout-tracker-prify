@@ -4,6 +4,9 @@ import { Database } from '../types/supabase';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
+console.log('Supabase URL:', supabaseUrl);
+console.log('Supabase Key exists:', !!supabaseKey);
+
 if (!supabaseUrl || !supabaseKey) {
   throw new Error('Missing Supabase URL or Anon Key');
 }
@@ -14,6 +17,7 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseKey, {
     autoRefreshToken: true,
     detectSessionInUrl: true,
     flowType: 'pkce',
+    debug: process.env.NODE_ENV === 'development',
     storage: {
       getItem: (key) => {
         try {
