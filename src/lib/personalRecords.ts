@@ -50,7 +50,7 @@ export async function checkAndUpdatePersonalRecords(
 
     const currentRecord = currentRecords && currentRecords.length > 0 ? currentRecords[0] : null;
 
-    // If no record exists or new value is better, update record
+    // Only update if this is actually a new record (higher value)
     if (!currentRecord || metric.value > currentRecord.value) {
       const recordData: PersonalRecordInsert = {
         user_id: user.id,
